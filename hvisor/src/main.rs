@@ -14,7 +14,8 @@
 #![feature(panic_info_message)]
 #![feature(asm_const)]
 use core::arch::global_asm;
-use log::*;
+#[macro_use]
+extern crate log;
 //extern crate alloc;
 extern crate buddy_system_allocator;
 //#[macro_use]

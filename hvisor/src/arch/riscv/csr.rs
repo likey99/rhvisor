@@ -39,44 +39,31 @@ pub const CSR_HENVCFGH: u64 = 0x61A;
 pub const CSR_STIMECMP: u64 = 0x14D;
 pub const CSR_STIMECMPH: u64 = 0x15D;
 
-// macro_rules! read_csr {
-//     ($csr_number:expr) => {
-//         {
-//             let mut value: u64;
-//             unsafe{
-//                 ::core::arch::asm!(
-//                 "csrr {value},  $csr_number",
-//                 value = out(reg) value,
-//                 options(nomem, nostack),
-//             );}
-//             value
-//         }
-//     }
-// }
-// pub(crate) use read_csr;
-// macro_rules! write_csr {
-//     ($csr_number:expr, $asm_fn: ident) => {
-//         /// Writes the CSR
-//         #[inline]
-//         #[allow(unused_variables)]
-//         unsafe fn _write(bits: usize) {
-//             match () {
-//                 #[cfg(all(riscv, feature = "inline-asm"))]
-//                 () => core::arch::asm!("csrrw x0, {1}, {0}", in(reg) bits, const $csr_number),
-
-//                 #[cfg(all(riscv, not(feature = "inline-asm")))]
-//                 () => {
-//                     extern "C" {
-//                         fn $asm_fn(bits: usize);
-//                     }
-
-//                     $asm_fn(bits);
-//                 }
-
-//                 #[cfg(not(riscv))]
-//                 () => unimplemented!(),
-//             }
-//         }
-//     };
-// }
-// pub(crate) use write_csr;
+macro_rules! read_csr {
+    ($csr_number:expr) => {
+        {
+            let mut value: usize;
+            unsafe{
+                ::core::arch::asm!(
+                "csrr {value},  {csr}",
+                value = out(reg) value,
+                csr=const $csr_number,
+                options(nomem, nostack),
+            );}
+            value
+        }
+    }
+}
+pub(crate) use read_csr;
+macro_rules! write_csr {
+    ($csr_number:expr, $value: expr) => {
+        unsafe{
+            let v: usize = $value;
+            ::core::arch::asm!(
+                "csrw {csr}, {value}",
+                value = in(reg) v,
+                csr = const $csr_number,
+                options(nomem, nostack),)}
+    };
+}
+pub(crate) use write_csr;

@@ -15,7 +15,7 @@ pub const HV_BASE: usize = 0xffffc0200000;
 /// Pointer of the per-CPU data array.
 pub const PER_CPU_ARRAY_PTR: *mut VirtAddr = __core_end as _;
 
-pub const INVALID_ADDRESS: u64 = u64::MAX;
+pub const INVALID_ADDRESS: usize = usize::MAX;
 
 extern "C" {
     fn __core_end();

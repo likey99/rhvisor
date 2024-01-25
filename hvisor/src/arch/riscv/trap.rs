@@ -1,31 +1,101 @@
 use crate::arch::riscv::csr::*;
-use aarch64_cpu::registers::CCSIDR_EL1::AssociativityWithCCIDX::Value;
+use crate::percpu;
 use core::arch::{asm, global_asm};
-use log::info;
-use riscv::register::{
-    mtvec::TrapMode,
-    scause::{self, Exception, Interrupt, Trap},
-    sie, stval, stvec,
-};
+use riscv::register::mtvec::TrapMode;
+use riscv::register::stvec;
+
+use super::cpu::ArchCpu;
+extern "C" {
+    fn _hyp_trap_vector();
+    fn boot_stack_top();
+}
+global_asm!(include_str!("trap.S"),
+sync_exception_handler=sym sync_exception_handler,
+interrupts_arch_handle=sym interrupts_arch_handle);
+pub mod ExceptionType {
+    pub const ECALL_VU: usize = 8;
+    pub const ECALL_VS: usize = 10;
+    pub const LOAD_GUEST_PAGE_FAULT: usize = 21;
+    pub const STORE_GUEST_PAGE_FAULT: usize = 23;
+}
 pub fn init() {
     unsafe {
         // Set the trap vector.
-        stvec::write(trap_handler as usize, TrapMode::Direct);
+        stvec::write(_hyp_trap_vector as usize, TrapMode::Direct);
     }
 }
-pub fn trap_handler() {
-    let mut value: u64;
+pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
+    info!("sync_exception_handler");
+    let trap_code: usize;
+    trap_code = read_csr!(CSR_SCAUSE);
+    info!("CSR_SCAUSE: {:#x}", trap_code);
+    if (read_csr!(CSR_HSTATUS) & (1 << 7)) == 0 {
+        //HSTATUS_SPV
+        error!("exception from HS mode");
+        unreachable!();
+    }
+    match trap_code {
+        ExceptionType::ECALL_VU => {
+            info!("ECALL_VU");
+        }
+        ExceptionType::ECALL_VS => {
+            info!("ECALL_VS");
+            sbi_vs_handler(current_cpu);
+        }
+        ExceptionType::LOAD_GUEST_PAGE_FAULT => {
+            info!("LOAD_GUEST_PAGE_FAULT");
+        }
+        ExceptionType::STORE_GUEST_PAGE_FAULT => {
+            info!("STORE_GUEST_PAGE_FAULT");
+        }
+        _ => {
+            error!("unhandled trap");
+            unreachable!();
+        }
+    }
+}
+pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
+    let ret = sbi_call_5(
+        current_cpu.regs[17],
+        current_cpu.regs[16],
+        current_cpu.regs[10],
+        current_cpu.regs[11],
+        current_cpu.regs[12],
+        current_cpu.regs[13],
+        current_cpu.regs[14],
+    );
+    current_cpu.sepc += 4;
+    current_cpu.regs[10] = ret.0;
+    current_cpu.regs[11] = ret.1;
+}
+pub fn sbi_call_5(
+    eid: usize,
+    fid: usize,
+    arg0: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize,
+) -> (usize, usize) {
+    let (error, value);
     unsafe {
-        ::core::arch::asm!("csrr {value}, {csr}",
-    value = out(reg) value,
-    csr = const CSR_SCAUSE,);
+        core::arch::asm!(
+            "ecall",
+            in("a7") eid,
+            in("a6") fid,
+            inlateout("a0") arg0 => error,
+            inlateout("a1") arg1 => value,
+            in("a2") arg2,
+            in("a3") arg3,
+            in("a4") arg4,
+        );
     }
-    log::info!("CSR_SCAUSE: {:#x}", value);
-    if value == 0xa {
-        info!("ecall from VS mode");
-    } else {
-        log::error!("trap unimplemented!");
-    }
-
+    (error, value)
+}
+pub fn interrupts_arch_handle() {
+    info!("interrupts_arch_handle");
+    let trap_code: usize;
+    trap_code = read_csr!(CSR_SCAUSE);
+    info!("CSR_SCAUSE: {:#x}", trap_code);
     unreachable!();
 }
