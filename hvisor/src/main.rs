@@ -14,6 +14,8 @@
 #![feature(panic_info_message)]
 #![feature(asm_const)]
 use core::arch::global_asm;
+
+use crate::{arch::riscv::cpu, percpu::PerCpu};
 #[macro_use]
 extern crate log;
 extern crate alloc;
@@ -41,7 +43,7 @@ pub fn clear_bss() {
 
 /// the rust entry-point of os
 #[no_mangle]
-pub fn rust_main() -> ! {
+pub fn rust_main(cpuid: usize) -> ! {
     extern "C" {
         fn stext(); // begin addr of text segment
         fn etext(); // end addr of text segment
@@ -76,9 +78,9 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     memory::init_heap();
-    //memory::init_frame_allocator();
+    memory::init_frame_allocator();
     arch::riscv::trap::init();
-    let mut cpu = alloc::boxed::Box::new(percpu::PerCpu::new(0));
+    let cpu = PerCpu::new(cpuid);
     cpu.cpu_init();
     // let mut value: u64;
     // unsafe {

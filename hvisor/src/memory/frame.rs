@@ -5,7 +5,7 @@ use bitmap_allocator::BitAlloc;
 use spin::Mutex;
 
 use super::addr::{align_down, align_up, is_aligned, phys_to_virt, virt_to_phys, PhysAddr};
-use crate::consts::PAGE_SIZE;
+use crate::consts::{HV_HEAP_SIZE, PAGE_SIZE};
 use crate::error::HvResult;
 
 // Support max 1M * 4096 = 1GB memory.
@@ -204,14 +204,13 @@ impl Drop for Frame {
 /// Initialize the physical frame allocator.
 pub(super) fn init() {
     let mem_pool_start = crate::consts::mem_pool_start();
-    let mem_pool_end = align_down(crate::consts::mem_pool_end());
-    let mem_pool_size = mem_pool_end - mem_pool_start;
+    let mem_pool_size = HV_HEAP_SIZE;
     FRAME_ALLOCATOR
         .lock()
         .init(virt_to_phys(mem_pool_start), mem_pool_size);
 
     info!(
         "Frame allocator init end: {:#x?}",
-        mem_pool_start..mem_pool_end
+        mem_pool_start..mem_pool_start + HV_HEAP_SIZE
     );
 }

@@ -1,4 +1,3 @@
-
 .text 
 
 .macro VM_EXIT
@@ -47,7 +46,8 @@
     csrr    t0, sepc
     sd   t0, 33*8(sp)
 
-    la      sp, boot_stack_top
+    ld   sp, 34*8(sp)
+    #la    sp, boot_stack_top
     csrr      a0, sscratch
     # .option push
     # .option norelax

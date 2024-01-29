@@ -25,7 +25,8 @@ pub fn init() {
     }
 }
 pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
-    info!("sync_exception_handler");
+    //info!("sync_exception_handler");
+    trace!("current_cpu: stack{:#x}", current_cpu.stack_top);
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
     info!("CSR_SCAUSE: {:#x}", trap_code);
@@ -56,17 +57,17 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
 }
 pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
     let ret = sbi_call_5(
-        current_cpu.regs[17],
-        current_cpu.regs[16],
-        current_cpu.regs[10],
-        current_cpu.regs[11],
-        current_cpu.regs[12],
-        current_cpu.regs[13],
-        current_cpu.regs[14],
+        current_cpu.x[17],
+        current_cpu.x[16],
+        current_cpu.x[10],
+        current_cpu.x[11],
+        current_cpu.x[12],
+        current_cpu.x[13],
+        current_cpu.x[14],
     );
     current_cpu.sepc += 4;
-    current_cpu.regs[10] = ret.0;
-    current_cpu.regs[11] = ret.1;
+    current_cpu.x[10] = ret.0;
+    current_cpu.x[11] = ret.1;
 }
 pub fn sbi_call_5(
     eid: usize,

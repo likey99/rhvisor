@@ -1,28 +1,41 @@
 #![allow(dead_code)]
 
 use crate::arch::riscv::csr::*;
+use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
+use crate::memory::addr::VirtAddr;
 #[repr(C)]
+#[derive(Debug)]
 pub struct ArchCpu {
-    pub regs: [usize; 31],
+    pub x: [usize; 31],
     pub hstatus: usize,
     pub sstatus: usize,
     pub sepc: usize,
+    pub stack_top: usize,
 }
 impl ArchCpu {
-    pub fn new() -> Self {
+    pub fn new(hartid: usize) -> Self {
         ArchCpu {
-            regs: [0; 31],
+            x: [0; 31],
             hstatus: 0,
             sstatus: 0,
             sepc: 0,
+            stack_top: 0,
         }
+    }
+    pub fn get_hartid(&self) -> usize {
+        0
+    }
+    pub fn stack_top(&self) -> VirtAddr {
+        PER_CPU_ARRAY_PTR as VirtAddr + (self.get_hartid() + 1) as usize * PER_CPU_SIZE - 8
     }
     pub fn init(&mut self) -> usize {
         //self.sepc = guest_test as usize as u64;
         self.sepc = 0x80400000;
         self.hstatus = 1 << 7 | 2 << 32; //HSTATUS_SPV | HSTATUS_VSXL_64
         self.sstatus = 1 << 8; //SPP
-        write_csr!(CSR_SSCRARCH, &self.regs as *const _ as usize);
+        self.stack_top = self.stack_top() as usize;
+        trace!("stack_top: {:#x}", self.stack_top);
+        write_csr!(CSR_SSCRARCH, self as *const _ as usize); //arch cpu
         write_csr!(CSR_SSTATUS, self.sstatus);
         write_csr!(CSR_HSTATUS, self.hstatus);
         write_csr!(CSR_SEPC, self.sepc);
