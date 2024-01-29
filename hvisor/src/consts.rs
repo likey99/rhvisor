@@ -11,12 +11,19 @@ pub const PER_CPU_SIZE: usize = 64 * 1024; // 64KB  //may get bigger when dev
 pub const PER_CPU_BOOT_SIZE: usize = 1024; // 1KB
 /// Start virtual address of the hypervisor memory.
 pub const HV_BASE: usize = 0xffffc0200000;
+pub fn hv_end() -> usize {
+    extern "C" {
+        fn __core_end();
+    }
+    unsafe { __core_end as usize }
+}
 
-/// Pointer of the per-CPU data array.
-pub const PER_CPU_ARRAY_PTR: *mut VirtAddr = __core_end as _;
+pub fn mem_pool_start() -> usize {
+    hv_end()
+}
+
+pub fn mem_pool_end() -> usize {
+    hv_end() + HV_HEAP_SIZE
+}
 
 pub const INVALID_ADDRESS: usize = usize::MAX;
-
-extern "C" {
-    fn __core_end();
-}

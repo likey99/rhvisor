@@ -1,5 +1,5 @@
 use crate::arch::riscv::cpu::ArchCpu;
-use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
+use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_SIZE};
 use crate::memory::addr::VirtAddr;
 pub struct PerCpu {
     pub id: usize,

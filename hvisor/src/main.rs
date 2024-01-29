@@ -16,10 +16,10 @@
 use core::arch::global_asm;
 #[macro_use]
 extern crate log;
-//extern crate alloc;
+extern crate alloc;
 extern crate buddy_system_allocator;
-//#[macro_use]
-//mod error;
+#[macro_use]
+mod error;
 #[macro_use]
 mod console;
 mod arch;
@@ -75,8 +75,11 @@ pub fn rust_main() -> ! {
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+    memory::init_heap();
+    //memory::init_frame_allocator();
     arch::riscv::trap::init();
-    percpu::PerCpu::new(0).cpu_init();
+    let mut cpu = alloc::boxed::Box::new(percpu::PerCpu::new(0));
+    cpu.cpu_init();
     // let mut value: u64;
     // unsafe {
     //     ::core::arch::asm!("csrr {value}, {csr}",
