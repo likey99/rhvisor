@@ -53,7 +53,7 @@ QEMU_ARGS := -machine virt \
 			 -nographic \
 			 -bios $(BOOTLOADER) \
 			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) \
-			 -device loader,file=../guests/target/guest2.bin,addr=0x80400000
+			 -device loader,file=../guests/guest2.bin,addr=0x80400000
 
 run-inner: build
 	@qemu-system-riscv64 $(QEMU_ARGS)
