@@ -4,7 +4,9 @@ use bitmap_allocator::BitAlloc;
 
 use spin::Mutex;
 
-use super::addr::{align_down, align_up, is_aligned, phys_to_virt, virt_to_phys, PhysAddr};
+use super::addr::{
+    align_down, align_up, is_aligned, phys_to_virt, virt_to_phys, PhysAddr, VirtAddr,
+};
 use crate::consts::{HV_HEAP_SIZE, PAGE_SIZE};
 use crate::error::HvResult;
 
@@ -203,7 +205,7 @@ impl Drop for Frame {
 
 /// Initialize the physical frame allocator.
 pub(super) fn init() {
-    let mem_pool_start = crate::consts::mem_pool_start();
+    let mem_pool_start: VirtAddr = crate::consts::mem_pool_start();
     let mem_pool_size = HV_HEAP_SIZE;
     FRAME_ALLOCATOR
         .lock()
@@ -213,4 +215,24 @@ pub(super) fn init() {
         "Frame allocator init end: {:#x?}",
         mem_pool_start..mem_pool_start + HV_HEAP_SIZE
     );
+}
+
+#[allow(unused)]
+/// a simple test for frame allocator
+pub fn frame_allocator_test() {
+    use alloc::vec::Vec;
+    let mut v: Vec<Frame> = Vec::new();
+    for i in 0..5 {
+        let frame = Frame::new().unwrap();
+        println!("{:x?}", frame);
+        v.push(frame);
+    }
+    v.clear();
+    for i in 0..5 {
+        let frame = Frame::new().unwrap();
+        println!("{:x?}", frame);
+        v.push(frame);
+    }
+    drop(v);
+    println!("frame_allocator_test passed!");
 }

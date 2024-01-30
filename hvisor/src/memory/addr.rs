@@ -2,6 +2,8 @@
 
 #![allow(dead_code)]
 
+use crate::consts::{HV_BASE, HV_PHY_BASE};
+
 pub type VirtAddr = usize;
 pub type PhysAddr = usize;
 
@@ -11,8 +13,7 @@ pub type GuestPhysAddr = usize;
 pub type HostVirtAddr = VirtAddr;
 pub type HostPhysAddr = PhysAddr;
 
-/// vaddr = paddr + this_offset, initialized at memory::init_heap().
-pub static mut PHYS_VIRT_OFFSET: usize = 0;
+pub static mut PHYS_VIRT_OFFSET: usize = 0; //HV_BASE - HV_PHY_BASE;
 pub const PAGE_SIZE: usize = 0x1000;
 
 pub fn virt_to_phys(vaddr: VirtAddr) -> PhysAddr {

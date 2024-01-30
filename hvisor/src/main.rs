@@ -13,7 +13,7 @@
 #![no_main]
 #![feature(panic_info_message)]
 #![feature(asm_const)]
-use core::arch::global_asm;
+use core::{arch::global_asm, mem};
 
 use crate::{arch::riscv::cpu, percpu::PerCpu};
 #[macro_use]
@@ -78,7 +78,9 @@ pub fn rust_main(cpuid: usize) -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     memory::init_heap();
+    memory::heap::heap_test();
     memory::init_frame_allocator();
+    memory::frame::frame_allocator_test();
     arch::riscv::trap::init();
     let cpu = PerCpu::new(cpuid);
     cpu.cpu_init();
