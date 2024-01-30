@@ -2,7 +2,7 @@
 
 #![allow(dead_code)]
 
-use crate::consts::{HV_BASE, HV_PHY_BASE};
+use crate::consts::{HV_BASE, HV_PHY_BASE, PAGE_SIZE};
 
 pub type VirtAddr = usize;
 pub type PhysAddr = usize;
@@ -14,7 +14,6 @@ pub type HostVirtAddr = VirtAddr;
 pub type HostPhysAddr = PhysAddr;
 
 pub static mut PHYS_VIRT_OFFSET: usize = 0; //HV_BASE - HV_PHY_BASE;
-pub const PAGE_SIZE: usize = 0x1000;
 
 pub fn virt_to_phys(vaddr: VirtAddr) -> PhysAddr {
     vaddr - unsafe { PHYS_VIRT_OFFSET }

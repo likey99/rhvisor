@@ -1,5 +1,5 @@
-pub use crate::memory::addr::PAGE_SIZE;
 use crate::memory::addr::{align_up, PhysAddr, VirtAddr};
+pub use crate::memory::PAGE_SIZE;
 
 /// Size of the hypervisor heap.
 pub const HV_HEAP_SIZE: usize = 1024 * 1024; // 1 MB

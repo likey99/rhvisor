@@ -1,7 +1,7 @@
 #![allow(unused)]
-use aarch64_cpu::registers::TTBR0_EL2;
 use core::fmt;
 use numeric_enum_macro::numeric_enum;
+use riscv::register::satp;
 use tock_registers::interfaces::Writeable;
 
 use crate::memory::addr::{GuestPhysAddr, HostPhysAddr, PhysAddr};
@@ -203,7 +203,10 @@ pub struct S1PTInstr;
 
 impl PagingInstr for S1PTInstr {
     unsafe fn activate(root_paddr: HostPhysAddr) {
-        TTBR0_EL2.set(root_paddr as _);
+        unsafe {
+            satp::write(root_paddr);
+            core::arch::asm!("sfence.vma");
+        }
     }
 
     fn flush(_vaddr: Option<usize>) {

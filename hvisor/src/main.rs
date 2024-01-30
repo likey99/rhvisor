@@ -18,6 +18,7 @@ use core::{arch::global_asm, mem};
 use crate::{arch::riscv::cpu, percpu::PerCpu};
 #[macro_use]
 extern crate log;
+#[macro_use]
 extern crate alloc;
 extern crate buddy_system_allocator;
 #[macro_use]
