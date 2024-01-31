@@ -39,6 +39,8 @@ impl ArchCpu {
         write_csr!(CSR_SSTATUS, self.sstatus);
         write_csr!(CSR_HSTATUS, self.hstatus);
         write_csr!(CSR_SEPC, self.sepc);
+        write_csr!(CSR_HIDELEG, 1 << 2 | 1 << 6 | 1 << 10); //HIDELEG_VSSI | HIDELEG_VSTI | HIDELEG_VSEI
+                                                            //?  write_csr!(CSR_HEDELEG, 1 << 8 | 1 << 20 | 1 << 21 | 1 << 23); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
         write_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
         write_csr!(CSR_HTIMEDELTA, 0);
         write_csr!(CSR_VSSTATUS, 1 << 63 | 3 << 13 | 3 << 15); //SSTATUS_SD | SSTATUS_FS_DIRTY | SSTATUS_XS_DIRTY

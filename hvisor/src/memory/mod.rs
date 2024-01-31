@@ -76,17 +76,17 @@ pub fn init_frame_allocator() {
     frame::init();
 }
 
-pub fn init_hv_page_table() -> Result<(), usize> {
+pub fn init_hv_page_table() -> usize {
     let hv_phys_start: PhysAddr = HV_PHY_BASE;
-    let hv_phys_size: VirtAddr = virt_to_phys(hv_end());
-    // let mut hv_pt: MemorySet<Stage1PageTable> = MemorySet::new();
+    let hv_phys_end: PhysAddr = virt_to_phys(hv_end());
+    let mut hv_pt: MemorySet<Stage1PageTable> = MemorySet::new();
 
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     HV_BASE as GuestPhysAddr,
-    //     hv_phys_start as HostPhysAddr,
-    //     hv_phys_size as usize,
-    //     MemFlags::READ | MemFlags::WRITE | MemFlags::NO_HUGEPAGES,
-    // ))?;
+    let _ = hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+        HV_BASE as GuestPhysAddr,
+        hv_phys_start as HostPhysAddr,
+        (hv_phys_end - hv_phys_start) as usize,
+        MemFlags::READ | MemFlags::WRITE | MemFlags::NO_HUGEPAGES,
+    ));
 
     // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
     //     trampoline_page as GuestPhysAddr,
@@ -141,10 +141,10 @@ pub fn init_hv_page_table() -> Result<(), usize> {
     //     MemFlags::READ | MemFlags::WRITE | MemFlags::IO,
     // ))?;
 
-    // info!("Hypervisor page table init end.");
-    // debug!("Hypervisor virtual memory set: {:#x?}", hv_pt);
+    info!("Hypervisor page table init end.");
+    debug!("Hypervisor virtual memory set: {:#x?}", hv_pt);
 
-    // HV_PT.call_once(|| RwLock::new(hv_pt));
+    HV_PT.call_once(|| RwLock::new(hv_pt));
 
-    Ok(())
+    0
 }

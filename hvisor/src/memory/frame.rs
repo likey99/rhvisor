@@ -7,7 +7,7 @@ use spin::Mutex;
 use super::addr::{
     align_down, align_up, is_aligned, phys_to_virt, virt_to_phys, PhysAddr, VirtAddr,
 };
-use crate::consts::{HV_HEAP_SIZE, PAGE_SIZE};
+use crate::consts::{HV_MEM_POOL_SIZE, PAGE_SIZE};
 use crate::error::HvResult;
 
 // Support max 1M * 4096 = 1GB memory.
@@ -206,14 +206,14 @@ impl Drop for Frame {
 /// Initialize the physical frame allocator.
 pub(super) fn init() {
     let mem_pool_start: VirtAddr = crate::consts::mem_pool_start();
-    let mem_pool_size = HV_HEAP_SIZE;
+    let mem_pool_size = HV_MEM_POOL_SIZE;
     FRAME_ALLOCATOR
         .lock()
         .init(virt_to_phys(mem_pool_start), mem_pool_size);
 
     info!(
         "Frame allocator init end: {:#x?}",
-        mem_pool_start..mem_pool_start + HV_HEAP_SIZE
+        mem_pool_start..mem_pool_start + HV_MEM_POOL_SIZE
     );
 }
 

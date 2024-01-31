@@ -1,90 +1,50 @@
 #![allow(unused)]
+use aarch64_cpu::registers::DAIF::D;
 use core::fmt;
 use numeric_enum_macro::numeric_enum;
 use riscv::register::satp;
 use tock_registers::interfaces::Writeable;
 
-use crate::memory::addr::{GuestPhysAddr, HostPhysAddr, PhysAddr};
+use crate::memory::addr::{HostPhysAddr, PhysAddr};
 use crate::memory::{GenericPTE, Level4PageTable, MemFlags, PagingInstr, PAGE_SIZE};
 
 bitflags::bitflags! {
-    /// Memory attribute fields in the VMSAv8-64 translation table format descriptors.
+    /// Memory attribute fields in the Sv39 translation table format descriptors.
     #[derive(Clone, Copy, Debug)]
     pub struct DescriptorAttr: u64 {
-        // Attribute fields in stage 1 VMSAv8-64 Block and Page descriptors:
+        // Attribute fields in stage 1 Sv39 Block and Page descriptors:
 
-        /// Whether the descriptor is valid.
         const VALID =       1 << 0;
-        /// The descriptor gives the address of the next level of translation table or 4KB page.
-        /// (not a 2M, 1G block)
-        const NON_BLOCK =   1 << 1;
-        /// Memory attributes index field.
-        const ATTR_INDX =   0b111 << 2;
-        /// Non-secure bit. For memory accesses from Secure state, specifies whether the output
-        /// address is in Secure or Non-secure memory.
-        const NS =          1 << 5;
-        /// Access permission: accessable at EL0.
-        const AP_EL0 =      1 << 6;
-        /// Access permission: read-only.
-        const AP_RO =       1 << 7;
-        /// Shareability: Inner Shareable (otherwise Outer Shareable).
-        const INNER =       1 << 8;
-        /// Shareability: Inner or Outer Shareable (otherwise Non-shareable).
-        const SHAREABLE =   1 << 9;
-        /// The Access flag.
-        const AF =          1 << 10;
-        /// The not global bit.
-        const NG =          1 << 11;
-    }
-}
+        // WHEN R|W|X is 0, this PTE is pointer to next level page table,else Block descriptor
+        const READABLE =    1 << 1;
+        const WRITABLE =    1 << 2;
+        const EXECUTABLE =  1 << 3;
+        const USER =        1 << 4;
+        const GLOBAL =      1 << 5;
+        const ACCESSED =    1 << 6;
+        const DIRTY =       1 << 7;
+        // RSW fields is bit[8..9]:Reserved for Software
 
-numeric_enum! {
-    #[repr(u64)]
-    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-    enum MemType {
-        Normal = 0,
-        Device = 1,
-    }
-}
-
-impl DescriptorAttr {
-    const ATTR_INDEX_MASK: u64 = 0b111_00;
-
-    const fn from_mem_type(mem_type: MemType) -> Self {
-        let mut bits = (mem_type as u64) << 2;
-        if matches!(mem_type, MemType::Normal) {
-            bits |= Self::INNER.bits() | Self::SHAREABLE.bits();
-        }
-        Self::from_bits_truncate(bits)
-    }
-
-    fn mem_type(&self) -> MemType {
-        let idx = (self.bits() & Self::ATTR_INDEX_MASK) >> 2;
-        match idx {
-            0 => MemType::Normal,
-            1 => MemType::Device,
-            _ => panic!("Invalid memory attribute index"),
-        }
-    }
-}
-
-impl MemType {
-    fn empty() -> Self {
-        Self::try_from(0).unwrap()
     }
 }
 
 impl From<DescriptorAttr> for MemFlags {
     fn from(attr: DescriptorAttr) -> Self {
         let mut flags = Self::empty();
-        if attr.contains(DescriptorAttr::VALID) && attr.contains(DescriptorAttr::AP_EL0) {
+        if !attr.contains(DescriptorAttr::VALID) {
+            return flags;
+        }
+        if attr.contains(DescriptorAttr::READABLE) {
             flags |= Self::READ;
         }
-        if !attr.contains(DescriptorAttr::AP_RO) {
+        if attr.contains(DescriptorAttr::WRITABLE) {
             flags |= Self::WRITE;
         }
-        if attr.mem_type() == MemType::Device {
-            flags |= Self::IO;
+        if attr.contains(DescriptorAttr::EXECUTABLE) {
+            flags |= Self::EXECUTE;
+        }
+        if attr.contains(DescriptorAttr::USER) {
+            flags |= Self::USER;
         }
         flags
     }
@@ -92,17 +52,19 @@ impl From<DescriptorAttr> for MemFlags {
 
 impl From<MemFlags> for DescriptorAttr {
     fn from(flags: MemFlags) -> Self {
-        let mut attr = if flags.contains(MemFlags::IO) {
-            Self::from_mem_type(MemType::Device)
-        } else {
-            Self::from_mem_type(MemType::Normal)
-        };
-        attr |= Self::VALID | Self::AF;
+        let mut attr = Self::empty();
+        attr |= Self::VALID;
         if flags.contains(MemFlags::READ) {
-            attr |= Self::AP_EL0;
+            attr |= Self::READABLE;
         }
-        if !flags.contains(MemFlags::WRITE) {
-            attr |= Self::AP_RO;
+        if flags.contains(MemFlags::WRITE) {
+            attr |= Self::WRITABLE;
+        }
+        if flags.contains(MemFlags::EXECUTE) {
+            attr |= Self::EXECUTABLE;
+        }
+        if flags.contains(MemFlags::USER) {
+            attr |= Self::USER;
         }
         attr
     }
@@ -113,7 +75,7 @@ impl From<MemFlags> for DescriptorAttr {
 pub struct PageTableEntry(pub u64);
 
 impl PageTableEntry {
-    const PHYS_ADDR_MASK: usize = 0xffff_ffff_ffff & !(PAGE_SIZE - 1);
+    const PHYS_ADDR_MASK: usize = 0xfff_ffff_ffff & !(PAGE_SIZE - 1); //44bit PPN +12bit offset
 
     pub const fn empty() -> Self {
         Self(0)
@@ -121,7 +83,7 @@ impl PageTableEntry {
 }
 
 impl GenericPTE for PageTableEntry {
-    fn addr(&self) -> GuestPhysAddr {
+    fn addr(&self) -> HostPhysAddr {
         PhysAddr::from(self.0 as usize & Self::PHYS_ADDR_MASK)
     }
 
@@ -138,32 +100,31 @@ impl GenericPTE for PageTableEntry {
     }
 
     fn is_huge(&self) -> bool {
-        !DescriptorAttr::from_bits_truncate(self.0).contains(DescriptorAttr::NON_BLOCK)
+        DescriptorAttr::from_bits_truncate(self.0).contains(DescriptorAttr::READABLE)
+            | DescriptorAttr::from_bits_truncate(self.0).contains(DescriptorAttr::WRITABLE)
+            | DescriptorAttr::from_bits_truncate(self.0).contains(DescriptorAttr::EXECUTABLE)
     }
 
-    fn set_addr(&mut self, paddr: GuestPhysAddr) {
+    fn set_addr(&mut self, paddr: HostPhysAddr) {
         self.0 =
             (self.0 & !Self::PHYS_ADDR_MASK as u64) | (paddr as u64 & Self::PHYS_ADDR_MASK as u64);
     }
 
     fn set_flags(&mut self, flags: MemFlags, is_huge: bool) {
-        let mut mem_type: MemType = MemType::Normal;
-        if flags.contains(MemFlags::IO) {
-            mem_type = MemType::Device;
-        }
-        let mut flags: DescriptorAttr = flags.into();
+        let mut attr: DescriptorAttr = flags.into();
         if !is_huge {
-            flags |= DescriptorAttr::NON_BLOCK;
+            attr &=
+                !(DescriptorAttr::READABLE | DescriptorAttr::WRITABLE | DescriptorAttr::EXECUTABLE);
         }
-        self.set_flags_and_mem_type(flags, mem_type);
+        self.0 = (attr.bits() & !Self::PHYS_ADDR_MASK as u64)
+            | (self.0 as u64 & Self::PHYS_ADDR_MASK as u64);
     }
 
-    fn set_table(&mut self, paddr: GuestPhysAddr) {
+    fn set_table(&mut self, paddr: HostPhysAddr) {
         self.set_addr(paddr);
-        self.set_flags_and_mem_type(
-            DescriptorAttr::VALID | DescriptorAttr::NON_BLOCK,
-            MemType::Normal,
-        );
+        let attr = DescriptorAttr::VALID;
+        self.0 = (attr.bits() & !Self::PHYS_ADDR_MASK as u64)
+            | (self.0 as u64 & Self::PHYS_ADDR_MASK as u64);
     }
 
     fn clear(&mut self) {
@@ -175,16 +136,6 @@ impl PageTableEntry {
     fn pt_flags(&self) -> MemFlags {
         DescriptorAttr::from_bits_truncate(self.0).into()
     }
-
-    fn memory_type(&self) -> MemType {
-        DescriptorAttr::from_bits_truncate(self.0).mem_type()
-    }
-
-    fn set_flags_and_mem_type(&mut self, flags: DescriptorAttr, mem_type: MemType) {
-        let attr = flags | DescriptorAttr::from_mem_type(mem_type);
-        self.0 = (attr.bits() & !Self::PHYS_ADDR_MASK as u64)
-            | (self.0 as u64 & Self::PHYS_ADDR_MASK as u64);
-    }
 }
 
 impl fmt::Debug for PageTableEntry {
@@ -194,7 +145,6 @@ impl fmt::Debug for PageTableEntry {
             .field("paddr", &self.addr())
             .field("attr", &DescriptorAttr::from_bits_truncate(self.0))
             .field("flags", &self.pt_flags())
-            .field("memory_type", &self.memory_type())
             .finish()
     }
 }
@@ -204,7 +154,7 @@ pub struct S1PTInstr;
 impl PagingInstr for S1PTInstr {
     unsafe fn activate(root_paddr: HostPhysAddr) {
         unsafe {
-            satp::write(root_paddr);
+            satp::set(satp::Mode::Sv39, 0, root_paddr >> 12);
             core::arch::asm!("sfence.vma");
         }
     }
@@ -214,4 +164,4 @@ impl PagingInstr for S1PTInstr {
     }
 }
 
-pub type Stage1PageTable = Level4PageTable<GuestPhysAddr, PageTableEntry, S1PTInstr>;
+pub type Stage1PageTable = Level4PageTable<HostPhysAddr, PageTableEntry, S1PTInstr>;

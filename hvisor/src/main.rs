@@ -78,10 +78,12 @@ pub fn rust_main(cpuid: usize) -> ! {
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+
     memory::init_heap();
     memory::heap::heap_test();
     memory::init_frame_allocator();
     memory::frame::frame_allocator_test();
+    memory::init_hv_page_table();
     arch::riscv::trap::init();
     let cpu = PerCpu::new(cpuid);
     cpu.cpu_init();
