@@ -4,6 +4,7 @@ pub const CSR_STVEC: u64 = 0x105;
 pub const CSR_SEPC: u64 = 0x141;
 pub const CSR_SSTATUS: u64 = 0x100;
 pub const CSR_SSCRARCH: u64 = 0x140;
+pub const CSR_SIE: u64 = 0x104;
 pub const CSR_VSSTATUS: u64 = 0x200;
 pub const CSR_VSIE: u64 = 0x204;
 pub const CSR_VSTVEC: u64 = 0x205;

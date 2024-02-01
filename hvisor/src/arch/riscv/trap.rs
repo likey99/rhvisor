@@ -18,6 +18,11 @@ pub mod ExceptionType {
     pub const LOAD_GUEST_PAGE_FAULT: usize = 21;
     pub const STORE_GUEST_PAGE_FAULT: usize = 23;
 }
+pub mod InterruptType {
+    pub const SSI: usize = 1;
+    pub const STI: usize = 5;
+    pub const SEI: usize = 9;
+}
 pub fn init() {
     unsafe {
         // Set the trap vector.
@@ -25,29 +30,36 @@ pub fn init() {
     }
 }
 pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
-    //info!("sync_exception_handler");
+    //trace!("sync_exception_handler");
     trace!("current_cpu: stack{:#x}", current_cpu.stack_top);
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
-    info!("CSR_SCAUSE: {:#x}", trap_code);
+    trace!("CSR_SCAUSE: {:#x}", trap_code);
     if (read_csr!(CSR_HSTATUS) & (1 << 7)) == 0 {
         //HSTATUS_SPV
         error!("exception from HS mode");
         unreachable!();
     }
+    let trap_value = read_csr!(CSR_HTVAL);
+    trace!("CSR_HTVAL: {:#x}", trap_value);
+    let trap_ins = read_csr!(CSR_HTINST);
+    trace!("CSR_HTINST: {:#x}", trap_ins);
+    let trap_pc = read_csr!(CSR_SEPC);
+    trace!("CSR_SEPC: {:#x}", trap_pc);
+    trace!("PC{:#x}", current_cpu.sepc);
     match trap_code {
         ExceptionType::ECALL_VU => {
-            info!("ECALL_VU");
+            trace!("ECALL_VU");
         }
         ExceptionType::ECALL_VS => {
-            info!("ECALL_VS");
+            trace!("ECALL_VS");
             sbi_vs_handler(current_cpu);
         }
         ExceptionType::LOAD_GUEST_PAGE_FAULT => {
-            info!("LOAD_GUEST_PAGE_FAULT");
+            trace!("LOAD_GUEST_PAGE_FAULT");
         }
         ExceptionType::STORE_GUEST_PAGE_FAULT => {
-            info!("STORE_GUEST_PAGE_FAULT");
+            trace!("STORE_GUEST_PAGE_FAULT");
         }
         _ => {
             error!("unhandled trap");
@@ -68,6 +80,7 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
     current_cpu.sepc += 4;
     current_cpu.x[10] = ret.0;
     current_cpu.x[11] = ret.1;
+    info!("sbi_call_5: error:{:#x}, value:{:#x}", ret.0, ret.1);
 }
 pub fn sbi_call_5(
     eid: usize,
@@ -98,5 +111,14 @@ pub fn interrupts_arch_handle() {
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
     info!("CSR_SCAUSE: {:#x}", trap_code);
-    unreachable!();
+    match trap_code & 0xff {
+        InterruptType::STI => {
+            info!("STI");
+            write_csr!(CSR_HVIP, 1 << 6); //VSTIP
+        }
+        _ => {
+            error!("unhandled trap");
+            unreachable!();
+        }
+    }
 }

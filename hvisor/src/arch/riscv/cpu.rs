@@ -6,7 +6,7 @@ use crate::memory::addr::VirtAddr;
 #[repr(C)]
 #[derive(Debug)]
 pub struct ArchCpu {
-    pub x: [usize; 31],
+    pub x: [usize; 32], //x1~x31
     pub hstatus: usize,
     pub sstatus: usize,
     pub sepc: usize,
@@ -15,7 +15,7 @@ pub struct ArchCpu {
 impl ArchCpu {
     pub fn new(hartid: usize) -> Self {
         ArchCpu {
-            x: [0; 31],
+            x: [0; 32],
             hstatus: 0,
             sstatus: 0,
             sepc: 0,
@@ -44,7 +44,8 @@ impl ArchCpu {
         write_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
         write_csr!(CSR_HTIMEDELTA, 0);
         write_csr!(CSR_VSSTATUS, 1 << 63 | 3 << 13 | 3 << 15); //SSTATUS_SD | SSTATUS_FS_DIRTY | SSTATUS_XS_DIRTY
-        write_csr!(CSR_HIE, 0);
+        write_csr!(CSR_SIE, 1 << 9 | 1 << 5 | 1 << 1); //SEIE STIE SSIE
+        write_csr!(CSR_HIE, 1 << 12 | 1 << 10 | 1 << 6 | 1 << 2); //SGEIE VSEIE VSTIE VSSIE
         write_csr!(CSR_VSTVEC, 0);
         write_csr!(CSR_VSSCRATCH, 0);
         write_csr!(CSR_VSEPC, 0);

@@ -294,7 +294,7 @@ where
             return Ok(p3e);
         }
 
-        let p2 = next_table_mut_or_create(p3e, || self.alloc_intrm_table())?; //bug
+        let p2 = next_table_mut_or_create(p3e, || self.alloc_intrm_table())?;
         let p2e = &mut p2[p2_index(vaddr)];
         if page.size == PageSize::Size2M {
             return Ok(p2e);
