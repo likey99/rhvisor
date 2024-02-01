@@ -86,7 +86,7 @@ impl PageTableEntry {
 
 impl GenericPTE for PageTableEntry {
     fn addr(&self) -> HostPhysAddr {
-        PhysAddr::from(((self.0 & PTE_PPN_MASK) >> 10) as usize) //[10:53] ppn
+        PhysAddr::from(((self.0 & PTE_PPN_MASK) << 2) as usize) //[10:53] ppn
     }
 
     fn flags(&self) -> MemFlags {

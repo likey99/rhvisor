@@ -294,7 +294,7 @@ where
             return Ok(p3e);
         }
 
-        let p2 = next_table_mut_or_create(p3e, || self.alloc_intrm_table())?;
+        let p2 = next_table_mut_or_create(p3e, || self.alloc_intrm_table())?; //bug
         let p2e = &mut p2[p2_index(vaddr)];
         if page.size == PageSize::Size2M {
             return Ok(p2e);
@@ -313,6 +313,7 @@ where
     ) -> PagingResult<&mut PTE> {
         let entry: &mut PTE = self.get_entry_mut_or_create(page)?;
         if !entry.is_unused() && page.vaddr.into() != TEMPORARY_MAPPING_BASE {
+            error!("AlreadyMapped");
             return Err(PagingError::AlreadyMapped);
         }
         entry.set_addr(page.size.align_down(paddr));
