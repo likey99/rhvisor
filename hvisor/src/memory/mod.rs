@@ -7,6 +7,7 @@ mod paging;
 
 use crate::arch::riscv::s1pt::Stage1PageTable;
 use crate::consts::{hv_end, HV_BASE, HV_PHY_BASE};
+use aarch64_cpu::registers::SCTLR_EL3::M;
 pub use addr::{
     virt_to_phys, GuestPhysAddr, GuestVirtAddr, HostPhysAddr, HostVirtAddr, PhysAddr, VirtAddr,
     PHYS_VIRT_OFFSET,
@@ -19,7 +20,7 @@ use spin::{Once, RwLock};
 pub use frame::Frame;
 pub use mm::{MemoryRegion, MemorySet, PARKING_INST_PAGE};
 pub use paging::{
-    npages, GenericPageTable, GenericPageTableImmut, Level4PageTable, Level4PageTableImmut,
+    npages, GenericPageTable, GenericPageTableImmut, Level3PageTable, Level3PageTableImmut,
 };
 pub use paging::{GenericPTE, PagingInstr};
 pub const PAGE_SIZE: usize = paging::PageSize::Size4K as usize;
@@ -77,15 +78,17 @@ pub fn init_frame_allocator() {
 }
 
 pub fn init_hv_page_table() -> usize {
-    let hv_phys_start: PhysAddr = HV_PHY_BASE;
-    let hv_phys_end: PhysAddr = virt_to_phys(hv_end());
+    // let hv_phys_start: PhysAddr = HV_PHY_BASE;
+    // let hv_phys_end: PhysAddr = virt_to_phys(hv_end());
+    let hv_phys_start: PhysAddr = 0x8000_0000;
+    let hv_phys_end: PhysAddr = hv_phys_start + 0x4000_0000;
     let mut hv_pt: MemorySet<Stage1PageTable> = MemorySet::new();
 
     let _ = hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-        HV_BASE as GuestPhysAddr,
+        0x8000_0000 as GuestPhysAddr,
         hv_phys_start as HostPhysAddr,
         (hv_phys_end - hv_phys_start) as usize,
-        MemFlags::READ | MemFlags::WRITE | MemFlags::NO_HUGEPAGES,
+        MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
     ));
 
     // hv_pt.insert(MemoryRegion::new_with_offset_mapper(

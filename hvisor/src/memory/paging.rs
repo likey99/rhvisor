@@ -123,15 +123,15 @@ pub trait GenericPageTable: GenericPageTableImmut {
     fn flush(&self, vaddr: Option<Self::VA>);
 }
 
-/// A immutable level-4 page table implements `GenericPageTableImmut`.
-pub struct Level4PageTableImmut<VA, PTE: GenericPTE> {
+/// A immutable level-3 page table implements `GenericPageTableImmut`.
+pub struct Level3PageTableImmut<VA, PTE: GenericPTE> {
     /// Root table frame.
     root: Frame,
     /// Phantom data.
     _phantom: PhantomData<(VA, PTE)>,
 }
 
-impl<VA, PTE> Level4PageTableImmut<VA, PTE>
+impl<VA, PTE> Level3PageTableImmut<VA, PTE>
 where
     VA: From<usize> + Into<usize> + Copy,
     PTE: GenericPTE,
@@ -145,10 +145,7 @@ where
 
     fn get_entry_mut(&self, vaddr: VA) -> PagingResult<(&mut PTE, PageSize)> {
         let vaddr = vaddr.into();
-        let p4 = table_of_mut::<PTE>(self.root_paddr());
-        let p4e = &mut p4[p4_index(vaddr)];
-
-        let p3 = next_table_mut(p4e)?;
+        let p3 = table_of_mut::<PTE>(self.root_paddr());
         let p3e = &mut p3[p3_index(vaddr)];
         if p3e.is_huge() {
             return Ok((p3e, PageSize::Size1G));
@@ -178,7 +175,7 @@ where
             let vaddr = start_vaddr + (i << (12 + (3 - level) * 9));
             if entry.is_present() {
                 func(level, i, vaddr, entry);
-                if level < 3 {
+                if level < 2 {
                     match next_table_mut(entry) {
                         Ok(entry) => self.walk(entry, level + 1, vaddr, limit, func),
                         Err(PagingError::MappedToHugePage) => {}
@@ -220,7 +217,7 @@ where
     }
 }
 
-impl<VA, PTE> GenericPageTableImmut for Level4PageTableImmut<VA, PTE>
+impl<VA, PTE> GenericPageTableImmut for Level3PageTableImmut<VA, PTE>
 where
     VA: From<usize> + Into<usize> + Copy,
     PTE: GenericPTE,
@@ -248,17 +245,17 @@ where
     }
 }
 
-/// A extended level-4 page table that can change its mapping. It also tracks all intermediate
+/// A extended level-3 page table that can change its mapping. It also tracks all intermediate
 /// level tables. Locks need to be used if change the same page table concurrently.
-struct Level4PageTableUnlocked<VA, PTE: GenericPTE, I: PagingInstr> {
-    inner: Level4PageTableImmut<VA, PTE>,
+struct Level3PageTableUnlocked<VA, PTE: GenericPTE, I: PagingInstr> {
+    inner: Level3PageTableImmut<VA, PTE>,
     /// Intermediate level table frames.
     intrm_tables: Vec<Frame>,
     /// Phantom data.
     _phantom: PhantomData<(VA, PTE, I)>,
 }
 
-impl<VA, PTE, I> Level4PageTableUnlocked<VA, PTE, I>
+impl<VA, PTE, I> Level3PageTableUnlocked<VA, PTE, I>
 where
     VA: From<usize> + Into<usize> + Copy,
     PTE: GenericPTE,
@@ -266,7 +263,7 @@ where
 {
     fn new() -> Self {
         Self {
-            inner: Level4PageTableImmut::new(),
+            inner: Level3PageTableImmut::new(),
             intrm_tables: Vec::new(),
             _phantom: PhantomData,
         }
@@ -274,7 +271,7 @@ where
 
     unsafe fn from_root(root_paddr: PhysAddr) -> Self {
         Self {
-            inner: Level4PageTableImmut::from_root(root_paddr),
+            inner: Level3PageTableImmut::from_root(root_paddr),
             intrm_tables: Vec::new(),
             _phantom: PhantomData,
         }
@@ -291,10 +288,7 @@ where
 
     fn get_entry_mut_or_create(&mut self, page: Page<VA>) -> PagingResult<&mut PTE> {
         let vaddr: usize = page.vaddr.into();
-        let p4 = table_of_mut::<PTE>(self.inner.root_paddr());
-        let p4e = &mut p4[p4_index(vaddr)];
-
-        let p3 = next_table_mut_or_create(p4e, || self.alloc_intrm_table())?;
+        let p3 = table_of_mut::<PTE>(self.inner.root_paddr());
         let p3e = &mut p3[p3_index(vaddr)];
         if page.size == PageSize::Size1G {
             return Ok(p3e);
@@ -346,13 +340,13 @@ where
 
 /// A extended level-4 page table implements `GenericPageTable`. It use locks to avoid data
 /// racing between it and its clonees.
-pub struct Level4PageTable<VA, PTE: GenericPTE, I: PagingInstr> {
-    inner: Level4PageTableUnlocked<VA, PTE, I>,
+pub struct Level3PageTable<VA, PTE: GenericPTE, I: PagingInstr> {
+    inner: Level3PageTableUnlocked<VA, PTE, I>,
     /// Make sure all accesses to the page table and its clonees is exclusive.
     clonee_lock: Arc<Mutex<()>>,
 }
 
-impl<VA, PTE, I> Level4PageTable<VA, PTE, I>
+impl<VA, PTE, I> Level3PageTable<VA, PTE, I>
 where
     VA: From<usize> + Into<usize> + Copy,
     PTE: GenericPTE,
@@ -368,18 +362,18 @@ where
         // XXX: The clonee won't track intermediate tables, must ensure it lives shorter than the
         // original page table.
         let pt = Self::new();
-        let dst_p4_table = unsafe {
+        let dst_p3_table = unsafe {
             slice::from_raw_parts_mut(phys_to_virt(pt.root_paddr()) as *mut PTE, ENTRY_COUNT)
         };
-        let src_p4_table = unsafe {
+        let src_p3_table = unsafe {
             slice::from_raw_parts(phys_to_virt(src.root_paddr()) as *const PTE, ENTRY_COUNT)
         };
-        dst_p4_table.clone_from_slice(src_p4_table);
+        dst_p3_table.clone_from_slice(src_p3_table);
         pt
     }
 }
 
-impl<VA, PTE, I> GenericPageTableImmut for Level4PageTable<VA, PTE, I>
+impl<VA, PTE, I> GenericPageTableImmut for Level3PageTable<VA, PTE, I>
 where
     VA: From<usize> + Into<usize> + Copy,
     PTE: GenericPTE,
@@ -389,7 +383,7 @@ where
 
     unsafe fn from_root(root_paddr: PhysAddr) -> Self {
         Self {
-            inner: Level4PageTableUnlocked::from_root(root_paddr),
+            inner: Level3PageTableUnlocked::from_root(root_paddr),
             clonee_lock: Arc::new(Mutex::new(())),
         }
     }
@@ -404,7 +398,7 @@ where
     }
 }
 
-impl<VA, PTE, I> GenericPageTable for Level4PageTable<VA, PTE, I>
+impl<VA, PTE, I> GenericPageTable for Level3PageTable<VA, PTE, I>
 where
     VA: From<usize> + Into<usize> + Copy,
     PTE: GenericPTE,
@@ -412,7 +406,7 @@ where
 {
     fn new() -> Self {
         Self {
-            inner: Level4PageTableUnlocked::new(),
+            inner: Level3PageTableUnlocked::new(),
             clonee_lock: Arc::new(Mutex::new(())),
         }
     }
@@ -512,9 +506,9 @@ where
     }
 }
 
-const fn p4_index(vaddr: usize) -> usize {
-    (vaddr >> (12 + 27)) & (ENTRY_COUNT - 1)
-}
+// const fn p4_index(vaddr: usize) -> usize {
+//     (vaddr >> (12 + 27)) & (ENTRY_COUNT - 1)
+// }
 
 const fn p3_index(vaddr: usize) -> usize {
     (vaddr >> (12 + 18)) & (ENTRY_COUNT - 1)

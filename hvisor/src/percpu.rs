@@ -1,5 +1,8 @@
+use core::mem;
+
 use crate::arch::riscv::cpu::ArchCpu;
 use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
+use crate::memory;
 use crate::memory::addr::VirtAddr;
 pub struct PerCpu {
     pub id: usize,
@@ -22,6 +25,9 @@ impl PerCpu {
     pub fn cpu_init(&mut self) {
         log::info!("activating cpu {}", self.id);
         self.cpu_on_entry = INVALID_ADDRESS;
+        unsafe {
+            memory::hv_page_table().read().activate();
+        }
         self.arch_cpu.init();
         unreachable!()
     }

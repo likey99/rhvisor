@@ -1,12 +1,15 @@
 #![allow(unused)]
 use aarch64_cpu::registers::DAIF::D;
+use bit_field::BitField;
 use core::fmt;
 use numeric_enum_macro::numeric_enum;
 use riscv::register::satp;
 use tock_registers::interfaces::Writeable;
 
 use crate::memory::addr::{HostPhysAddr, PhysAddr};
-use crate::memory::{GenericPTE, Level4PageTable, MemFlags, PagingInstr, PAGE_SIZE};
+use crate::memory::{GenericPTE, Level3PageTable, MemFlags, PagingInstr, PAGE_SIZE};
+// |Reserved|  PPN  |RSW |Attr|
+// |  63-54 | 53-10 |9-8 |7-0 |
 
 bitflags::bitflags! {
     /// Memory attribute fields in the Sv39 translation table format descriptors.
@@ -73,10 +76,9 @@ impl From<MemFlags> for DescriptorAttr {
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct PageTableEntry(pub u64);
-
+const PTE_PPN_MASK: u64 = 0x3F_FFFF_FFFF_FC00; //[10..53]ppn
+const PPN_MASK: u64 = 0xFF_FFFF_FFFF_F000; //[12..55]ppn
 impl PageTableEntry {
-    const PHYS_ADDR_MASK: usize = 0xfff_ffff_ffff & !(PAGE_SIZE - 1); //44bit PPN +12bit offset
-
     pub const fn empty() -> Self {
         Self(0)
     }
@@ -84,7 +86,7 @@ impl PageTableEntry {
 
 impl GenericPTE for PageTableEntry {
     fn addr(&self) -> HostPhysAddr {
-        PhysAddr::from(self.0 as usize & Self::PHYS_ADDR_MASK)
+        PhysAddr::from(((self.0 & PTE_PPN_MASK) >> 10) as usize) //[10:53] ppn
     }
 
     fn flags(&self) -> MemFlags {
@@ -106,8 +108,7 @@ impl GenericPTE for PageTableEntry {
     }
 
     fn set_addr(&mut self, paddr: HostPhysAddr) {
-        self.0 =
-            (self.0 & !Self::PHYS_ADDR_MASK as u64) | (paddr as u64 & Self::PHYS_ADDR_MASK as u64);
+        self.0 = (self.0.get_bits(0..7)) | ((paddr as u64 & PPN_MASK) >> 2);
     }
 
     fn set_flags(&mut self, flags: MemFlags, is_huge: bool) {
@@ -116,15 +117,13 @@ impl GenericPTE for PageTableEntry {
             attr &=
                 !(DescriptorAttr::READABLE | DescriptorAttr::WRITABLE | DescriptorAttr::EXECUTABLE);
         }
-        self.0 = (attr.bits() & !Self::PHYS_ADDR_MASK as u64)
-            | (self.0 as u64 & Self::PHYS_ADDR_MASK as u64);
+        self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
     }
 
     fn set_table(&mut self, paddr: HostPhysAddr) {
         self.set_addr(paddr);
         let attr = DescriptorAttr::VALID;
-        self.0 = (attr.bits() & !Self::PHYS_ADDR_MASK as u64)
-            | (self.0 as u64 & Self::PHYS_ADDR_MASK as u64);
+        self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
     }
 
     fn clear(&mut self) {
@@ -161,7 +160,8 @@ impl PagingInstr for S1PTInstr {
 
     fn flush(_vaddr: Option<usize>) {
         // do nothing
+        let a: u64 = 0x200f7400 << 2;
     }
 }
 
-pub type Stage1PageTable = Level4PageTable<HostPhysAddr, PageTableEntry, S1PTInstr>;
+pub type Stage1PageTable = Level3PageTable<HostPhysAddr, PageTableEntry, S1PTInstr>;
