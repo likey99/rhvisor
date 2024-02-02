@@ -55,7 +55,7 @@ impl From<DescriptorAttr> for MemFlags {
 impl From<MemFlags> for DescriptorAttr {
     fn from(flags: MemFlags) -> Self {
         let mut attr = Self::empty();
-        attr |= Self::VALID;
+        attr |= Self::VALID | Self::USER; //stage 2 page table must user
         if flags.contains(MemFlags::READ) {
             attr |= Self::READABLE;
         }

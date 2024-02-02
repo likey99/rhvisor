@@ -57,9 +57,11 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
         }
         ExceptionType::LOAD_GUEST_PAGE_FAULT => {
             error!("LOAD_GUEST_PAGE_FAULT");
+            unreachable!();
         }
         ExceptionType::STORE_GUEST_PAGE_FAULT => {
             error!("STORE_GUEST_PAGE_FAULT");
+            unreachable!();
         }
         _ => {
             error!(
@@ -83,7 +85,7 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
     current_cpu.sepc += 4;
     current_cpu.x[10] = ret.0;
     current_cpu.x[11] = ret.1;
-    warn!("sbi_call_5: error:{:#x}, value:{:#x}", ret.0, ret.1);
+    trace!("sbi_call_5: error:{:#x}, value:{:#x}", ret.0, ret.1);
 }
 pub fn sbi_call_5(
     eid: usize,
@@ -94,7 +96,7 @@ pub fn sbi_call_5(
     arg3: usize,
     arg4: usize,
 ) -> (usize, usize) {
-    warn!("sbi_call_5: eid:{:#x}, fid:{:#x}", eid, fid);
+    trace!("sbi_call_5: eid:{:#x}, fid:{:#x}", eid, fid);
     let (error, value);
     unsafe {
         core::arch::asm!(
@@ -111,14 +113,18 @@ pub fn sbi_call_5(
     (error, value)
 }
 pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
-    info!("interrupts_arch_handle");
+    trace!("interrupts_arch_handle");
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
-    info!("CSR_SCAUSE: {:#x}", trap_code);
+    trace!("CSR_SCAUSE: {:#x}", trap_code);
     match trap_code & 0xff {
         InterruptType::STI => {
-            info!("STI");
+            trace!("STI");
             write_csr!(CSR_HVIP, 1 << 6); //VSTIP
+            let mut sip: usize = read_csr!(CSR_SIP);
+            sip &= !(1 << 5);
+            write_csr!(CSR_SIP, sip); //clear STIP
+            debug!("STI");
         }
         _ => {
             error!(

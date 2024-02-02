@@ -28,9 +28,9 @@ impl ArchCpu {
     pub fn stack_top(&self) -> VirtAddr {
         PER_CPU_ARRAY_PTR as VirtAddr + (self.get_hartid() + 1) as usize * PER_CPU_SIZE - 8
     }
-    pub fn init(&mut self) -> usize {
+    pub fn init(&mut self, entry: usize) -> usize {
         //self.sepc = guest_test as usize as u64;
-        self.sepc = 0x80200000;
+        self.sepc = entry;
         self.hstatus = 1 << 7 | 2 << 32; //HSTATUS_SPV | HSTATUS_VSXL_64
         self.sstatus = 1 << 8; //SPP
         self.stack_top = self.stack_top() as usize;
