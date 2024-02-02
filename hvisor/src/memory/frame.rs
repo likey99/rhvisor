@@ -9,6 +9,7 @@ use super::addr::{
 };
 use crate::consts::{HV_MEM_POOL_SIZE, PAGE_SIZE};
 use crate::error::HvResult;
+use crate::memory::addr::align_16;
 
 // Support max 1M * 4096 = 1GB memory.
 type FrameAlloc = bitmap_allocator::BitAlloc1M;
@@ -205,11 +206,9 @@ impl Drop for Frame {
 
 /// Initialize the physical frame allocator.
 pub(super) fn init() {
-    let mem_pool_start: VirtAddr = crate::consts::mem_pool_start();
+    let mem_pool_start: VirtAddr = align_16(crate::consts::mem_pool_start());
     let mem_pool_size = HV_MEM_POOL_SIZE;
-    FRAME_ALLOCATOR
-        .lock()
-        .init(virt_to_phys(mem_pool_start), mem_pool_size);
+    FRAME_ALLOCATOR.lock().init(mem_pool_start, mem_pool_size);
 
     info!(
         "Frame allocator init end: {:#x?}",

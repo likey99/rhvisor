@@ -1,8 +1,8 @@
 #![allow(unused)]
+use super::csr::{write_csr, CSR_HGATP};
 use bit_field::BitField;
 use core::fmt;
 use numeric_enum_macro::numeric_enum;
-use riscv::register::satp;
 use tock_registers::interfaces::Writeable;
 
 use crate::memory::addr::{HostPhysAddr, PhysAddr};
@@ -147,14 +147,20 @@ impl fmt::Debug for PageTableEntry {
     }
 }
 
-pub struct S1PTInstr;
+pub struct S2PTInstr;
 
-impl PagingInstr for S1PTInstr {
+impl PagingInstr for S2PTInstr {
     unsafe fn activate(root_paddr: HostPhysAddr) {
-        println!("activate hv stage 1 page table");
+        println!("guest stage2 PT activate");
         unsafe {
-            satp::set(satp::Mode::Sv39, 0, root_paddr >> 12);
-            //core::arch::asm!("sfence.vma");
+            let mut bits = 0usize;
+            let mode: usize = 8; //Mode::Sv39x4
+            let vmid: usize = 0;
+            bits.set_bits(60..64, mode as usize);
+            bits.set_bits(44..58, vmid);
+            bits.set_bits(0..44, root_paddr >> 12);
+            write_csr!(CSR_HGATP, bits);
+            //core::arch::asm!("hsfence.vvma");//not supported in rust
         }
     }
 
@@ -163,4 +169,4 @@ impl PagingInstr for S1PTInstr {
     }
 }
 
-pub type Stage1PageTable = Level3PageTable<HostPhysAddr, PageTableEntry, S1PTInstr>;
+pub type Stage2PageTable = Level3PageTable<HostPhysAddr, PageTableEntry, S2PTInstr>;

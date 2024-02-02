@@ -1,4 +1,4 @@
-use crate::arch::riscv::csr::*;
+use crate::arch::riscv::{csr::*, trap};
 use crate::percpu;
 use core::arch::{asm, global_asm};
 use riscv::register::mtvec::TrapMode;
@@ -49,20 +49,23 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
     trace!("PC{:#x}", current_cpu.sepc);
     match trap_code {
         ExceptionType::ECALL_VU => {
-            trace!("ECALL_VU");
+            error!("ECALL_VU");
         }
         ExceptionType::ECALL_VS => {
             trace!("ECALL_VS");
             sbi_vs_handler(current_cpu);
         }
         ExceptionType::LOAD_GUEST_PAGE_FAULT => {
-            trace!("LOAD_GUEST_PAGE_FAULT");
+            error!("LOAD_GUEST_PAGE_FAULT");
         }
         ExceptionType::STORE_GUEST_PAGE_FAULT => {
-            trace!("STORE_GUEST_PAGE_FAULT");
+            error!("STORE_GUEST_PAGE_FAULT");
         }
         _ => {
-            error!("unhandled trap");
+            error!(
+                "unhandled trap {:#x},sepc: {:#x}",
+                trap_code, current_cpu.sepc
+            );
             unreachable!();
         }
     }
@@ -80,7 +83,7 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
     current_cpu.sepc += 4;
     current_cpu.x[10] = ret.0;
     current_cpu.x[11] = ret.1;
-    info!("sbi_call_5: error:{:#x}, value:{:#x}", ret.0, ret.1);
+    warn!("sbi_call_5: error:{:#x}, value:{:#x}", ret.0, ret.1);
 }
 pub fn sbi_call_5(
     eid: usize,
@@ -91,6 +94,7 @@ pub fn sbi_call_5(
     arg3: usize,
     arg4: usize,
 ) -> (usize, usize) {
+    warn!("sbi_call_5: eid:{:#x}, fid:{:#x}", eid, fid);
     let (error, value);
     unsafe {
         core::arch::asm!(
@@ -106,7 +110,7 @@ pub fn sbi_call_5(
     }
     (error, value)
 }
-pub fn interrupts_arch_handle() {
+pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     info!("interrupts_arch_handle");
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
@@ -117,7 +121,10 @@ pub fn interrupts_arch_handle() {
             write_csr!(CSR_HVIP, 1 << 6); //VSTIP
         }
         _ => {
-            error!("unhandled trap");
+            error!(
+                "unhandled trap {:#x},sepc: {:#x}",
+                trap_code, current_cpu.sepc
+            );
             unreachable!();
         }
     }

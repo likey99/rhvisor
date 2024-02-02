@@ -85,10 +85,10 @@ pub fn init_hv_page_table() -> usize {
     let mut hv_pt: MemorySet<Stage1PageTable> = MemorySet::new();
 
     let _ = hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-        0x8000_0000 as GuestPhysAddr,
+        0x8000_0000 as HostVirtAddr,
         hv_phys_start as HostPhysAddr,
         (hv_phys_end - hv_phys_start) as usize,
-        MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
+        MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE | MemFlags::NO_HUGEPAGES,
     ));
 
     // hv_pt.insert(MemoryRegion::new_with_offset_mapper(

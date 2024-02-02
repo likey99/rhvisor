@@ -51,9 +51,11 @@ run: run-inner
 
 QEMU_ARGS := -machine virt \
 			 -nographic \
+			 -cpu rv64 \
+			 -m 4G \
 			 -bios $(BOOTLOADER) \
 			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) \
-			 -device loader,file=../guests/guest2.bin,addr=0x80400000
+			 -device loader,file=../guests/os_ch4_804.bin,addr=0x80400000
 
 run-inner: build
 	@qemu-system-riscv64 $(QEMU_ARGS)

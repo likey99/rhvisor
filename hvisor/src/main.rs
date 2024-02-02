@@ -15,7 +15,7 @@
 #![feature(asm_const)]
 use core::{arch::global_asm, mem};
 
-use crate::{arch::riscv::cpu, percpu::PerCpu};
+use crate::{arch::riscv::cpu, memory::frame::Frame, percpu::PerCpu};
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -31,6 +31,7 @@ mod lang_items;
 mod logging;
 mod memory;
 mod percpu;
+mod vm;
 global_asm!(include_str!("arch/riscv/arch_entry.S"));
 
 /// clear BSS segment
@@ -59,40 +60,43 @@ pub fn rust_main(cpuid: usize) -> ! {
     }
     clear_bss();
     logging::init();
-    println!("[kernel] Hello, world!");
+    println!("[rhvisor] Hello, world!");
     trace!(
-        "[kernel] .text [{:#x}, {:#x})",
+        "[rhvisor] .text [{:#x}, {:#x})",
         stext as usize,
         etext as usize
     );
     debug!(
-        "[kernel] .rodata [{:#x}, {:#x})",
+        "[rhvisor] .rodata [{:#x}, {:#x})",
         srodata as usize, erodata as usize
     );
     info!(
-        "[kernel] .data [{:#x}, {:#x})",
+        "[rhvisor] .data [{:#x}, {:#x})",
         sdata as usize, edata as usize
     );
     warn!(
-        "[kernel] boot_stack top=bottom={:#x}, lower_bound={:#x}",
+        "[rhvisor] boot_stack top=bottom={:#x}, lower_bound={:#x}",
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
-    error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+    error!(
+        "[rhvisor] .bss [{:#x}, {:#x})",
+        sbss as usize, ebss as usize
+    );
 
     memory::init_heap();
     memory::heap::heap_test();
     memory::init_frame_allocator();
     memory::frame::frame_allocator_test();
+    let mut vm = vm::Vm::new(0);
+    vm.pt_init();
+    unsafe {
+        vm.gpm.activate();
+    }
     memory::init_hv_page_table();
     arch::riscv::trap::init();
+
     let cpu = PerCpu::new(cpuid);
     cpu.cpu_init();
-    // let mut value: u64;
-    // unsafe {
-    //     ::core::arch::asm!("csrr {value}, {csr}",
-    //     value = out(reg) value,
-    //     csr = const arch::riscv::csr::CSR_HSTATUS,);
-    // }
-    // info!("CSR_HSTATUS: {:#x}", value);
+
     arch::riscv::sbi::shutdown(false)
 }

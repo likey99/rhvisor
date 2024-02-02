@@ -30,7 +30,7 @@ impl ArchCpu {
     }
     pub fn init(&mut self) -> usize {
         //self.sepc = guest_test as usize as u64;
-        self.sepc = 0x80400000;
+        self.sepc = 0x80200000;
         self.hstatus = 1 << 7 | 2 << 32; //HSTATUS_SPV | HSTATUS_VSXL_64
         self.sstatus = 1 << 8; //SPP
         self.stack_top = self.stack_top() as usize;
@@ -40,7 +40,7 @@ impl ArchCpu {
         write_csr!(CSR_HSTATUS, self.hstatus);
         write_csr!(CSR_SEPC, self.sepc);
         write_csr!(CSR_HIDELEG, 1 << 2 | 1 << 6 | 1 << 10); //HIDELEG_VSSI | HIDELEG_VSTI | HIDELEG_VSEI
-                                                            //?  write_csr!(CSR_HEDELEG, 1 << 8 | 1 << 20 | 1 << 21 | 1 << 23); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
+        write_csr!(CSR_HEDELEG, 1 << 8); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
         write_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
         write_csr!(CSR_HTIMEDELTA, 0);
         write_csr!(CSR_VSSTATUS, 1 << 63 | 3 << 13 | 3 << 15); //SSTATUS_SD | SSTATUS_FS_DIRTY | SSTATUS_XS_DIRTY

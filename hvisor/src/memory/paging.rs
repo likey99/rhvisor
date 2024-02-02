@@ -190,7 +190,7 @@ where
         }
     }
 
-    fn dump(&self, limit: usize) {
+    pub fn dump(&self, limit: usize) {
         static LOCK: Mutex<()> = Mutex::new(());
         let _lock = LOCK.lock();
 
@@ -205,7 +205,7 @@ where
                     print!(" ");
                 }
                 println!(
-                    "[ADDR:{:#x?} level:{} - idx:{:03}], vaddr:{:08x?}: {:x?}",
+                    "[ADDR:{:#x?} level:{} - idx:{:03}], vaddr:{:#x?}: {:#x?}",
                     virt_to_phys(entry as *const _ as VirtAddr),
                     level,
                     idx,
