@@ -61,7 +61,7 @@ impl Vm {
     pub fn pt_init(&mut self) {
         let vm_vaddr_start: usize = 0x8020_0000;
         let vm_paddr_start: usize = 0x8040_0000;
-        let vm_mem_size: usize = 0x80_0000;
+        let vm_mem_size: usize = 0x800_0000;
         self.gpm
             .insert(MemoryRegion::new_with_offset_mapper(
                 vm_vaddr_start as GuestPhysAddr,

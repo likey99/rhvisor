@@ -60,28 +60,15 @@ pub fn rust_main(cpuid: usize) -> ! {
     }
     clear_bss();
     logging::init();
-    println!("[rhvisor] Hello, world!");
-    trace!(
-        "[rhvisor] .text [{:#x}, {:#x})",
-        stext as usize,
-        etext as usize
-    );
-    debug!(
-        "[rhvisor] .rodata [{:#x}, {:#x})",
-        srodata as usize, erodata as usize
-    );
-    info!(
-        "[rhvisor] .data [{:#x}, {:#x})",
-        sdata as usize, edata as usize
-    );
+    println!("Hello, world!");
+    trace!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
+    debug!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
+    info!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
     warn!(
-        "[rhvisor] boot_stack top=bottom={:#x}, lower_bound={:#x}",
+        "boot_stack top=bottom={:#x}, lower_bound={:#x}",
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
-    error!(
-        "[rhvisor] .bss [{:#x}, {:#x})",
-        sbss as usize, ebss as usize
-    );
+    error!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 
     memory::init_heap();
     memory::heap::heap_test();

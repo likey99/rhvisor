@@ -1,8 +1,10 @@
+use crate::arch::riscv::timer::{get_time, set_next_trigger};
 use crate::arch::riscv::{csr::*, trap};
 use crate::percpu;
 use core::arch::{asm, global_asm};
 use riscv::register::mtvec::TrapMode;
 use riscv::register::stvec;
+use sbi_rt::set_timer;
 
 use super::cpu::ArchCpu;
 extern "C" {
@@ -97,6 +99,11 @@ pub fn sbi_call_5(
     arg4: usize,
 ) -> (usize, usize) {
     trace!("sbi_call_5: eid:{:#x}, fid:{:#x}", eid, fid);
+    if eid == 0x54494D45 {
+        debug!("VS set timer");
+        write_csr!(CSR_HVIP, 0); //VSTIP
+        write_csr!(CSR_SIE, 1 << 9 | 1 << 5 | 1 << 1);
+    }
     let (error, value);
     unsafe {
         core::arch::asm!(
@@ -112,19 +119,20 @@ pub fn sbi_call_5(
     }
     (error, value)
 }
+static mut coputer: usize = 0;
 pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     trace!("interrupts_arch_handle");
+
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
     trace!("CSR_SCAUSE: {:#x}", trap_code);
-    match trap_code & 0xff {
+    match trap_code & 0xfff {
         InterruptType::STI => {
             trace!("STI");
             write_csr!(CSR_HVIP, 1 << 6); //VSTIP
             let mut sip: usize = read_csr!(CSR_SIP);
-            sip &= !(1 << 5);
-            write_csr!(CSR_SIP, sip); //clear STIP
-            debug!("STI");
+            debug!("sip: {:#x}", sip);
+            write_csr!(CSR_SIE, 1 << 9 | 1 << 1); // clear the timer interrupt pending bit
         }
         _ => {
             error!(
