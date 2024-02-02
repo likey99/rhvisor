@@ -81,7 +81,7 @@ pub trait GenericPTE: Debug + Clone {
     /// Set physical address for terminal entries.
     fn set_addr(&mut self, paddr: PhysAddr);
     /// Set flags for terminal entries.
-    fn set_flags(&mut self, flags: MemFlags, is_huge: bool);
+    fn set_flags(&mut self, flags: MemFlags);
     /// Set physical address and flags for intermediate table entries.
     fn set_table(&mut self, paddr: PhysAddr);
     /// Set this entry to zero.
@@ -286,17 +286,23 @@ where
 
     fn _dealloc_intrm_table(&mut self, _paddr: PhysAddr) {}
 
-    fn get_entry_mut_or_create(&mut self, page: Page<VA>) -> PagingResult<&mut PTE> {
+    fn get_entry_mut_or_create(
+        &mut self,
+        page: Page<VA>,
+        flags: &mut MemFlags,
+    ) -> PagingResult<&mut PTE> {
         let vaddr: usize = page.vaddr.into();
         let p3 = table_of_mut::<PTE>(self.inner.root_paddr());
         let p3e = &mut p3[p3_index(vaddr)];
         if page.size == PageSize::Size1G {
+            flags.remove(MemFlags::NO_HUGEPAGES);
             return Ok(p3e);
         }
 
         let p2 = next_table_mut_or_create(p3e, || self.alloc_intrm_table())?;
         let p2e = &mut p2[p2_index(vaddr)];
         if page.size == PageSize::Size2M {
+            flags.remove(MemFlags::NO_HUGEPAGES);
             return Ok(p2e);
         }
 
@@ -309,15 +315,15 @@ where
         &mut self,
         page: Page<VA>,
         paddr: PhysAddr,
-        flags: MemFlags,
+        mut flags: MemFlags,
     ) -> PagingResult<&mut PTE> {
-        let entry: &mut PTE = self.get_entry_mut_or_create(page)?;
+        let entry: &mut PTE = self.get_entry_mut_or_create(page, &mut flags)?;
         if !entry.is_unused() && page.vaddr.into() != TEMPORARY_MAPPING_BASE {
             error!("AlreadyMapped");
             return Err(PagingError::AlreadyMapped);
         }
         entry.set_addr(page.size.align_down(paddr));
-        entry.set_flags(flags, page.size.is_huge());
+        entry.set_flags(flags);
         Ok(entry)
     }
 
@@ -334,7 +340,7 @@ where
     fn update(&mut self, vaddr: VA, paddr: PhysAddr, flags: MemFlags) -> PagingResult<PageSize> {
         let (entry, size) = self.inner.get_entry_mut(vaddr)?;
         entry.set_addr(paddr);
-        entry.set_flags(flags, size.is_huge());
+        entry.set_flags(flags);
         Ok(size)
     }
 }

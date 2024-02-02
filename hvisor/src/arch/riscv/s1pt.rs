@@ -110,12 +110,8 @@ impl GenericPTE for PageTableEntry {
         self.0 = (self.0.get_bits(0..7)) | ((paddr as u64 & PPN_MASK) >> 2);
     }
 
-    fn set_flags(&mut self, flags: MemFlags, is_huge: bool) {
+    fn set_flags(&mut self, flags: MemFlags) {
         let mut attr: DescriptorAttr = flags.into();
-        if !is_huge {
-            attr &=
-                !(DescriptorAttr::READABLE | DescriptorAttr::WRITABLE | DescriptorAttr::EXECUTABLE);
-        }
         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
     }
 
