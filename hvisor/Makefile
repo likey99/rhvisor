@@ -55,7 +55,9 @@ QEMU_ARGS := -machine virt \
 			 -m 4G \
 			 -bios $(BOOTLOADER) \
 			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) \
-			 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000
+			 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 
+			 
+#			 -device virtio-serial-port -chardev pty,id=serial3 -device virtconsole,chardev=serial3 \
 
 run-inner: build
 	@qemu-system-riscv64 $(QEMU_ARGS)
@@ -67,5 +69,6 @@ monitor:
 	gdb-multiarch \
 	-ex 'target remote:1234' \
 	-ex 'b *$(KERNEL_ENTRY_PA)' \
+	-ex 'file $(KERNEL_ELF)' 
 
-.PHONY: build env kernel clean disasm disasm-vim run-inner gdbserver gdbclient
+.PHONY: build env kernel clean disa run-inner debug monitor

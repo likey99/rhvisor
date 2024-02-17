@@ -138,7 +138,7 @@ where
 {
     fn new() -> Self {
         Self {
-            root: Frame::new_zero().expect("failed to allocate root frame for host page table"),
+            root: Frame::new_16().expect("failed to allocate root frame for host page table"),
             _phantom: PhantomData,
         }
     }

@@ -156,6 +156,7 @@ impl PagingInstr for S2PTInstr {
             bits.set_bits(60..64, mode as usize);
             bits.set_bits(44..58, vmid);
             bits.set_bits(0..44, root_paddr >> 12);
+            println!("HGATP: {:#x?}", bits);
             write_csr!(CSR_HGATP, bits);
             //core::arch::asm!("hsfence.vvma");//not supported in rust
         }

@@ -2,14 +2,14 @@
 
 use bitmap_allocator::BitAlloc;
 
-use spin::Mutex;
-
 use super::addr::{
     align_down, align_up, is_aligned, phys_to_virt, virt_to_phys, PhysAddr, VirtAddr,
 };
 use crate::consts::{HV_MEM_POOL_SIZE, PAGE_SIZE};
 use crate::error::HvResult;
 use crate::memory::addr::align_16;
+use alloc::vec::Vec;
+use spin::Mutex;
 
 // Support max 1M * 4096 = 1GB memory.
 type FrameAlloc = bitmap_allocator::BitAlloc1M;
@@ -128,7 +128,22 @@ impl Frame {
                 .ok_or(hv_err!(ENOMEM))
         }
     }
-
+    pub fn new_16() -> HvResult<Self> {
+        let mut v: Vec<Frame> = Vec::new();
+        loop {
+            let f = Self::new_zero()?;
+            if f.start_paddr & 0b11_1111_1111_1111 == 0 {
+                v.push(f);
+                break;
+            }
+            v.push(f);
+        }
+        let f_16 = v.pop().unwrap();
+        drop(f_16);
+        let ret = Self::new_contiguous(4, 0)?;
+        drop(v);
+        Ok(ret)
+    }
     /// Constructs a frame from a raw physical address without automatically calling the destructor.
     ///
     /// # Safety
@@ -206,7 +221,7 @@ impl Drop for Frame {
 
 /// Initialize the physical frame allocator.
 pub(super) fn init() {
-    let mem_pool_start: VirtAddr = align_16(crate::consts::mem_pool_start());
+    let mem_pool_start: VirtAddr = crate::consts::mem_pool_start(); //align_16(crate::consts::mem_pool_start()); //make sure the guest root page is 16KB alligned
     let mem_pool_size = HV_MEM_POOL_SIZE;
     FRAME_ALLOCATOR.lock().init(mem_pool_start, mem_pool_size);
 
@@ -219,7 +234,6 @@ pub(super) fn init() {
 #[allow(unused)]
 /// a simple test for frame allocator
 pub fn frame_allocator_test() {
-    use alloc::vec::Vec;
     let mut v: Vec<Frame> = Vec::new();
     for i in 0..5 {
         let frame = Frame::new().unwrap();

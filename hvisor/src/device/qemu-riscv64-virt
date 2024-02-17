@@ -1,0 +1,178 @@
+bus: main-system-bus
+  type System
+  dev: fw_cfg_mem, id ""
+    data_width = 8 (0x8)
+    dma_enabled = true
+    x-file-slots = 32 (0x20)
+    acpi-mr-restore = true
+    mmio 0000000010100008/0000000000000002
+    mmio 0000000010100000/0000000000000008
+    mmio 0000000010100010/0000000000000008
+  dev: cfi.pflash01, id ""
+    drive = ""
+    num-blocks = 128 (0x80)
+    sector-length = 262144 (0x40000)
+    width = 4 (0x4)
+    device-width = 2 (0x2)
+    max-device-width = 2 (0x2)
+    big-endian = false
+    secure = false
+    id0 = 137 (0x89)
+    id1 = 24 (0x18)
+    id2 = 0 (0x0)
+    id3 = 0 (0x0)
+    name = "virt.flash1"
+    old-multiple-chip-handling = false
+    mmio ffffffffffffffff/0000000002000000
+  dev: cfi.pflash01, id ""
+    drive = ""
+    num-blocks = 128 (0x80)
+    sector-length = 262144 (0x40000)
+    width = 4 (0x4)
+    device-width = 2 (0x2)
+    max-device-width = 2 (0x2)
+    big-endian = false
+    secure = false
+    id0 = 137 (0x89)
+    id1 = 24 (0x18)
+    id2 = 0 (0x0)
+    id3 = 0 (0x0)
+    name = "virt.flash0"
+    old-multiple-chip-handling = false
+    mmio ffffffffffffffff/0000000002000000
+  dev: goldfish_rtc, id ""
+    gpio-out "sysbus-irq" 1
+    big-endian = false
+    mmio 0000000000101000/0000000000000024
+  dev: serial-mm, id ""
+    gpio-out "sysbus-irq" 1
+    regshift = 0 (0x0)
+    endianness = 2 (0x2)
+    mmio ffffffffffffffff/0000000000000008
+  dev: platform-bus-device, id "platform-bus-device"
+    gpio-out "sysbus-irq" 32
+    num_irqs = 32 (0x20)
+    mmio_size = 33554432 (0x2000000)
+    mmio ffffffffffffffff/0000000002000000
+  dev: gpex-pcihost, id ""
+    gpio-out "sysbus-irq" 4
+    allow-unmapped-accesses = true
+    x-config-reg-migration-enabled = true
+    bypass-iommu = false
+    mmio ffffffffffffffff/0000000010000000
+    mmio ffffffffffffffff/ffffffffffffffff
+    mmio 0000000003000000/0000000000010000
+    bus: pcie.0
+      type PCIE
+      dev: gpex-root, id ""
+        addr = 00.0
+        romfile = ""
+        romsize = 4294967295 (0xffffffff)
+        rombar = 1 (0x1)
+        multifunction = false
+        x-pcie-lnksta-dllla = true
+        x-pcie-extcap-init = true
+        failover_pair_id = ""
+        acpi-index = 0 (0x0)
+        class Host bridge, addr 00:00.0, pci id 1b36:0008 (sub 1af4:1100)
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010008000/0000000000000200
+    bus: virtio-mmio-bus.7
+      type virtio-mmio-bus
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010007000/0000000000000200
+    bus: virtio-mmio-bus.6
+      type virtio-mmio-bus
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010006000/0000000000000200
+    bus: virtio-mmio-bus.5
+      type virtio-mmio-bus
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010005000/0000000000000200
+    bus: virtio-mmio-bus.4
+      type virtio-mmio-bus
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010004000/0000000000000200
+    bus: virtio-mmio-bus.3
+      type virtio-mmio-bus
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010003000/0000000000000200
+    bus: virtio-mmio-bus.2
+      type virtio-mmio-bus
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010002000/0000000000000200
+    bus: virtio-mmio-bus.1
+      type virtio-mmio-bus
+  dev: virtio-mmio, id ""
+    gpio-out "sysbus-irq" 1
+    format_transport_address = true
+    force-legacy = true
+    ioeventfd = false
+    mmio 0000000010001000/0000000000000200
+    bus: virtio-mmio-bus.0
+      type virtio-mmio-bus
+  dev: riscv.sifive.test, id ""
+    mmio 0000000000100000/0000000000001000
+  dev: riscv.sifive.plic, id ""
+    gpio-in "" 96
+    gpio-out "" 2
+    hart-config = "MS"
+    hartid-base = 0 (0x0)
+    num-sources = 96 (0x60)
+    num-priorities = 7 (0x7)
+    priority-base = 4 (0x4)
+    pending-base = 4096 (0x1000)
+    enable-base = 8192 (0x2000)
+    enable-stride = 128 (0x80)
+    context-base = 2097152 (0x200000)
+    context-stride = 4096 (0x1000)
+    aperture-size = 6291456 (0x600000)
+    mmio 000000000c000000/0000000000600000
+  dev: riscv.aclint.mtimer, id ""
+    gpio-out "" 1
+    hartid-base = 0 (0x0)
+    num-harts = 1 (0x1)
+    timecmp-base = 0 (0x0)
+    time-base = 32760 (0x7ff8)
+    aperture-size = 32768 (0x8000)
+    timebase-freq = 10000000 (0x989680)
+    mmio 0000000002004000/0000000000008000
+  dev: riscv.aclint.swi, id ""
+    gpio-out "" 1
+    hartid-base = 0 (0x0)
+    num-harts = 1 (0x1)
+    sswi = 0 (0x0)
+    mmio 0000000002000000/0000000000004000
+  dev: riscv.hart_array, id ""
+    num-harts = 1 (0x1)
+    hartid-base = 0 (0x0)
+    cpu-type = "rv64-riscv-cpu"
+    resetvec = 4096 (0x1000)

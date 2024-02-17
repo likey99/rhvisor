@@ -7,6 +7,7 @@ mod paging;
 
 use crate::arch::riscv::s1pt::Stage1PageTable;
 use crate::consts::{hv_end, HV_BASE, HV_PHY_BASE};
+use crate::error::HvResult;
 use aarch64_cpu::registers::SCTLR_EL3::M;
 pub use addr::{
     virt_to_phys, GuestPhysAddr, GuestVirtAddr, HostPhysAddr, HostVirtAddr, PhysAddr, VirtAddr,
@@ -76,7 +77,6 @@ pub fn init_heap() {
 pub fn init_frame_allocator() {
     frame::init();
 }
-
 pub fn init_hv_page_table() -> usize {
     // let hv_phys_start: PhysAddr = HV_PHY_BASE;
     // let hv_phys_end: PhysAddr = virt_to_phys(hv_end());
