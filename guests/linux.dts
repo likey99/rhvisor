@@ -33,7 +33,7 @@
 
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x00 0x80200000 0x00 0x40000000>;
+		reg = <0x00 0x80200000 0x00 0x8000000>;
 	};
 
 	cpus {
