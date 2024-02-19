@@ -21,6 +21,7 @@ extern crate log;
 #[macro_use]
 extern crate alloc;
 extern crate buddy_system_allocator;
+extern crate fdt;
 #[macro_use]
 mod error;
 #[macro_use]
@@ -32,6 +33,14 @@ mod logging;
 mod memory;
 mod percpu;
 mod vm;
+#[link_section = ".dtb"]
+/// the guest dtb file
+pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
+    *include_bytes!("../../guests/linux.dtb");
+#[link_section = ".initrd"]
+static GUEST: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
+    *include_bytes!("../../guests/os_ch5_802.bin");
+
 global_asm!(include_str!("arch/riscv/arch_entry.S"));
 
 /// clear BSS segment
@@ -45,7 +54,7 @@ pub fn clear_bss() {
 
 /// the rust entry-point of os
 #[no_mangle]
-pub fn rust_main(cpuid: usize) -> ! {
+pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
     extern "C" {
         fn stext(); // begin addr of text segment
         fn etext(); // end addr of text segment
@@ -57,6 +66,9 @@ pub fn rust_main(cpuid: usize) -> ! {
         fn ebss(); // end addr of BSS segment
         fn boot_stack_lower_bound(); // stack lower bound
         fn boot_stack_top(); // stack top
+        fn __core_end(); // end of kernel
+        fn gdtb();
+        fn vmimg();
     }
     clear_bss();
     logging::init();
@@ -69,20 +81,38 @@ pub fn rust_main(cpuid: usize) -> ! {
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
     error!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+    println!("core_end: {:#x}", __core_end as usize);
+    println!("gdtb: {:#x}", gdtb as usize);
+    println!("vmimg: {:#x}", vmimg as usize);
 
     memory::init_heap();
     memory::heap::heap_test();
     memory::init_frame_allocator();
     memory::frame::frame_allocator_test();
+    debug!("host dtb: {:#x}", dtb);
+    let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
+    debug!("fdt: {:?}", fdt);
+    //let vm_vaddr_start: usize = 0x8020_0000;
+    //let vm_paddr_start: usize = 0x8040_0000;
+    let vm_paddr_start: usize = GUEST.as_ptr() as usize;
+    //let vm_mem_size: usize = 0x0080_0000;
+    let guest_fdt = unsafe { fdt::Fdt::from_ptr(GUEST_DTB.as_ptr()) }.unwrap();
     let mut vm = vm::Vm::new(0);
-    vm.pt_init();
+    vm.pt_init(vm_paddr_start, guest_fdt).unwrap();
     unsafe {
         vm.gpm.activate();
     }
+    //unreachable!();
     memory::init_hv_page_table();
     arch::riscv::trap::init();
 
     let cpu = PerCpu::new(cpuid);
+    debug!(
+        "guest entry: {:#x}, guest size: {:#x}",
+        GUEST.as_ptr() as usize,
+        GUEST.len()
+    );
+
     cpu.cpu_init();
 
     arch::riscv::sbi::shutdown(false)

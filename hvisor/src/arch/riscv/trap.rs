@@ -129,8 +129,8 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     match trap_code & 0xfff {
         InterruptType::STI => {
             trace!("STI");
-            write_csr!(CSR_HVIP, 1 << 6); //VSTIP
-            let mut sip: usize = read_csr!(CSR_SIP);
+            write_csr!(CSR_HVIP, 1 << 6); //inject VSTIP
+            let sip: usize = read_csr!(CSR_SIP);
             debug!("sip: {:#x}", sip);
             write_csr!(CSR_SIE, 1 << 9 | 1 << 1); // clear the timer interrupt pending bit
         }

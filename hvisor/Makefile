@@ -49,15 +49,20 @@ disa:
 
 run: run-inner
 
-QEMU_ARGS := -machine virt \
-			 -nographic \
-			 -cpu rv64 \
-			 -m 4G \
-			 -bios $(BOOTLOADER) \
-			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) \
-			 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 
+QEMU_ARGS := -machine virt 
+QEMU_ARGS +=-nographic 
+QEMU_ARGS +=-cpu rv64 
+QEMU_ARGS +=-m 4G 
+QEMU_ARGS +=-bios $(BOOTLOADER)
+#QEMU_ARGS +=-kernel ../guests/Image-62 
+#QEMU_ARGS +=-drive file=../guests/rootfs-busybox.img,format=raw,id=hd0 
+#QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
+#QEMU_ARGS +=-append "root=/dev/vda rw console=ttyS0"
+#QEMU_ARGS +=-kernel $(KERNEL_BIN)
+QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
+#QEMU_ARGS +=		 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 
 			 
-#			 -device virtio-serial-port -chardev pty,id=serial3 -device virtconsole,chardev=serial3 \
+#QEMU_ARGS +=		 -device virtio-serial-port -chardev pty,id=serial3 -device virtconsole,chardev=serial3 \
 
 run-inner: build
 	@qemu-system-riscv64 $(QEMU_ARGS)
@@ -70,5 +75,7 @@ monitor:
 	-ex 'target remote:1234' \
 	-ex 'b *$(KERNEL_ENTRY_PA)' \
 	-ex 'file $(KERNEL_ELF)' 
+dtb:
+	@dtc -I dts -O dtb -o ../guests/linux.dtb ../guests/linux.dts
 
-.PHONY: build env kernel clean disa run-inner debug monitor
+.PHONY: build env kernel clean disa run-inner debug monitor dtb

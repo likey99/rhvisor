@@ -62,6 +62,8 @@ impl ArchCpu {
         info!("CSR_VSATP: {:#x}", value);
         value = read_csr!(CSR_HGATP);
         info!("CSR_HGATP: {:#x}", value);
+        info!("Go to Guest!");
+        unreachable!();
         unsafe {
             ::core::arch::asm!("sret",);
         }

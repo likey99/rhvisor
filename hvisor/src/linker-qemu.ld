@@ -42,9 +42,21 @@ SECTIONS
     ebss = .;
     ekernel = .;
 
+
     /DISCARD/ : {
         *(.eh_frame)
     }
     . = ALIGN(4K);
 	__core_end = .;
+    . = . + 0x2000000;
+    gdtb = .;
+    .dtb : {
+        *(.dtb)
+    }
+    . = ALIGN(4K);
+    vmimg = .;
+    .initrd : {
+        *(.initrd)
+    }
+    
 }

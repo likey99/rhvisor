@@ -77,6 +77,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fdt"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "784a4df722dc6267a04af36895398f59d21d07dce47232adf31ec0ff2fa45e67"
+
+[[package]]
 name = "hvisor"
 version = "0.1.0"
 dependencies = [
@@ -85,6 +91,7 @@ dependencies = [
  "bitflags 2.4.2",
  "bitmap-allocator",
  "buddy_system_allocator",
+ "fdt",
  "lazy_static",
  "log",
  "numeric-enum-macro",

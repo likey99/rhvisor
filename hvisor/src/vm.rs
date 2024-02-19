@@ -1,4 +1,9 @@
+use core::char::decode_utf16;
+use core::mem::{self};
+
 use crate::arch::riscv::s2pt::Stage2PageTable;
+use crate::error::HvResult;
+use crate::memory::addr::align_up;
 use crate::memory::{GuestPhysAddr, HostPhysAddr, MemFlags, MemoryRegion, MemorySet};
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -58,18 +63,106 @@ impl Vm {
             cpu_set: CpuSet::new(1, 1),
         }
     }
-    pub fn pt_init(&mut self) {
-        let vm_vaddr_start: usize = 0x8020_0000;
-        let vm_paddr_start: usize = 0x8040_0000;
-        let vm_mem_size: usize = 0x800_0000;
-        self.gpm
-            .insert(MemoryRegion::new_with_offset_mapper(
-                vm_vaddr_start as GuestPhysAddr,
-                vm_paddr_start as HostPhysAddr,
-                vm_mem_size,
-                MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
-            ))
-            .unwrap();
+    pub fn pt_init(&mut self, vm_paddr_start: usize, fdt: fdt::Fdt) -> HvResult {
+        debug!("fdt: {:?}", fdt);
+        // The first memory region is used to map the guest physical memory.
+        let mem_region = fdt.memory().regions().next().unwrap();
+        debug!("map mem_region: {:?}", mem_region);
+        self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+            mem_region.starting_address as GuestPhysAddr,
+            vm_paddr_start as HostPhysAddr,
+            mem_region.size.unwrap(),
+            MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
+        ))?;
+        // probe virtio mmio device
+        for node in fdt.find_all_nodes("/soc/virtio_mmio") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map virtio mmio addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        // probe virt test
+        for node in fdt.find_all_nodes("/soc/test") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map test addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        // probe uart device
+        for node in fdt.find_all_nodes("/soc/uart") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = align_up(reg.size.unwrap());
+                debug!("map uart addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        // probe clint(core local interrupter)
+        for node in fdt.find_all_nodes("/soc/clint") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map clint addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        // probe plic
+        for node in fdt.find_all_nodes("/soc/plic") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map plic addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        for node in fdt.find_all_nodes("/soc/pci") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map pci addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
         debug!("VM stage 2 memory set: {:#x?}", self.gpm);
+        Ok(())
     }
 }

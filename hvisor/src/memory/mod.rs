@@ -81,14 +81,14 @@ pub fn init_hv_page_table() -> usize {
     // let hv_phys_start: PhysAddr = HV_PHY_BASE;
     // let hv_phys_end: PhysAddr = virt_to_phys(hv_end());
     let hv_phys_start: PhysAddr = 0x8000_0000;
-    let hv_phys_end: PhysAddr = hv_phys_start + 0x0040_0000;
+    let hv_phys_end: PhysAddr = hv_phys_start + 0x1000_0000;
     let mut hv_pt: MemorySet<Stage1PageTable> = MemorySet::new();
 
     let _ = hv_pt.insert(MemoryRegion::new_with_offset_mapper(
         0x8000_0000 as HostVirtAddr,
         hv_phys_start as HostPhysAddr,
         (hv_phys_end - hv_phys_start) as usize,
-        MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE | MemFlags::NO_HUGEPAGES,
+        MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
     ));
 
     // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
