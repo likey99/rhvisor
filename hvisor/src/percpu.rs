@@ -22,13 +22,10 @@ impl PerCpu {
         };
         ret
     }
-    pub fn cpu_init(&mut self) {
-        log::info!("activating cpu {}", self.id);
-        self.cpu_on_entry = 0x8020_0000;
-        unsafe {
-            memory::hv_page_table().read().activate();
-        }
-        self.arch_cpu.init(self.cpu_on_entry);
+    pub fn cpu_init(&mut self, entry: usize, dtb: usize) {
+        log::info!("activating cpu {:#x} {:#x} {:#x}", self.id, entry, dtb);
+        self.cpu_on_entry = entry;
+        self.arch_cpu.init(self.cpu_on_entry, self.id, dtb);
         unreachable!()
     }
 }

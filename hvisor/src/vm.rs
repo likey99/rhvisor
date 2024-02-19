@@ -2,9 +2,11 @@ use core::char::decode_utf16;
 use core::mem::{self};
 
 use crate::arch::riscv::s2pt::Stage2PageTable;
+use crate::device::qemu_riscv64_virt::*;
 use crate::error::HvResult;
 use crate::memory::addr::align_up;
 use crate::memory::{GuestPhysAddr, HostPhysAddr, MemFlags, MemoryRegion, MemorySet};
+use crate::GUEST_DTB;
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct CpuSet {
@@ -63,7 +65,7 @@ impl Vm {
             cpu_set: CpuSet::new(1, 1),
         }
     }
-    pub fn pt_init(&mut self, vm_paddr_start: usize, fdt: fdt::Fdt) -> HvResult {
+    pub fn pt_init(&mut self, vm_paddr_start: usize, fdt: fdt::Fdt, dtb_addr: usize) -> HvResult {
         debug!("fdt: {:?}", fdt);
         // The first memory region is used to map the guest physical memory.
         let mem_region = fdt.memory().regions().next().unwrap();
@@ -72,6 +74,14 @@ impl Vm {
             mem_region.starting_address as GuestPhysAddr,
             vm_paddr_start as HostPhysAddr,
             mem_region.size.unwrap(),
+            MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
+        ))?;
+        // map guest dtb
+        let guest_dtb = GUEST_DTB.as_ptr() as usize;
+        self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+            dtb_addr as GuestPhysAddr,
+            guest_dtb as HostPhysAddr,
+            align_up(fdt.total_size()),
             MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
         ))?;
         // probe virtio mmio device
@@ -135,10 +145,12 @@ impl Vm {
         }
 
         // probe plic
+        //TODO: remove plic map from vm
         for node in fdt.find_all_nodes("/soc/plic") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
-                let size = reg.size.unwrap();
+                //let size = reg.size.unwrap();
+                let size = PLIC_GLOBAL_SIZE; //
                 debug!("map plic addr: {:#x}, size: {:#x}", paddr, size);
                 self.gpm.insert(MemoryRegion::new_with_offset_mapper(
                     paddr as GuestPhysAddr,

@@ -28,6 +28,7 @@ mod error;
 mod console;
 mod arch;
 mod consts;
+mod device;
 mod lang_items;
 mod logging;
 mod memory;
@@ -38,8 +39,8 @@ mod vm;
 pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
     *include_bytes!("../../guests/linux.dtb");
 #[link_section = ".initrd"]
-static GUEST: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
-    *include_bytes!("../../guests/os_ch5_802.bin");
+static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
+    *include_bytes!("../../guests/Image-62");
 
 global_asm!(include_str!("arch/riscv/arch_entry.S"));
 
@@ -90,20 +91,22 @@ pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
     memory::init_frame_allocator();
     memory::frame::frame_allocator_test();
     debug!("host dtb: {:#x}", dtb);
-    let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
-    debug!("fdt: {:?}", fdt);
+    let host_fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
     //let vm_vaddr_start: usize = 0x8020_0000;
     //let vm_paddr_start: usize = 0x8040_0000;
     let vm_paddr_start: usize = GUEST.as_ptr() as usize;
     //let vm_mem_size: usize = 0x0080_0000;
     let guest_fdt = unsafe { fdt::Fdt::from_ptr(GUEST_DTB.as_ptr()) }.unwrap();
     let mut vm = vm::Vm::new(0);
-    vm.pt_init(vm_paddr_start, guest_fdt).unwrap();
+    vm.pt_init(vm_paddr_start, guest_fdt, dtb).unwrap();
     unsafe {
         vm.gpm.activate();
     }
     //unreachable!();
-    memory::init_hv_page_table();
+    memory::init_hv_page_table(host_fdt).unwrap();
+    unsafe {
+        memory::hv_page_table().read().activate();
+    }
     arch::riscv::trap::init();
 
     let cpu = PerCpu::new(cpuid);
@@ -112,8 +115,13 @@ pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
         GUEST.as_ptr() as usize,
         GUEST.len()
     );
-
-    cpu.cpu_init();
+    let guest_entry = guest_fdt
+        .memory()
+        .regions()
+        .next()
+        .unwrap()
+        .starting_address as usize;
+    cpu.cpu_init(guest_entry, dtb);
 
     arch::riscv::sbi::shutdown(false)
 }

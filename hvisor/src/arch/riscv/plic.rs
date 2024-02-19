@@ -1,3 +1,15 @@
+use crate::device::qemu_riscv64_virt::PLIC_BASE;
+use spin::{Once, RwLock};
+/// Plic used for Hypervisor.
+static PLIC: Once<RwLock<Plic>> = Once::new();
+
+pub fn hv_plic<'a>() -> &'a RwLock<Plic> {
+    PLIC.get().expect("Uninitialized hypervisor plic!")
+}
+pub fn init_plic(plic_base: usize) {
+    let plic = Plic::new(plic_base);
+    PLIC.call_once(|| RwLock::new(plic));
+}
 struct Plic {
     base: usize,
     max_priority: usize,

@@ -1,12 +1,12 @@
+use super::cpu::ArchCpu;
+use super::sbi::sbi_vs_handler;
 use crate::arch::riscv::timer::{get_time, set_next_trigger};
 use crate::arch::riscv::{csr::*, trap};
+use crate::memory::HostPhysAddr;
 use crate::percpu;
 use core::arch::{asm, global_asm};
 use riscv::register::mtvec::TrapMode;
 use riscv::register::stvec;
-use sbi_rt::set_timer;
-
-use super::cpu::ArchCpu;
 extern "C" {
     fn _hyp_trap_vector();
     fn boot_stack_top();
@@ -20,6 +20,7 @@ pub mod ExceptionType {
     pub const LOAD_GUEST_PAGE_FAULT: usize = 21;
     pub const STORE_GUEST_PAGE_FAULT: usize = 23;
 }
+
 pub mod InterruptType {
     pub const SSI: usize = 1;
     pub const STI: usize = 5;
@@ -32,7 +33,7 @@ pub fn init() {
     }
 }
 pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
-    //trace!("sync_exception_handler");
+    trace!("sync_exception_handler");
     trace!("current_cpu: stack{:#x}", current_cpu.stack_top);
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
@@ -58,12 +59,12 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
             sbi_vs_handler(current_cpu);
         }
         ExceptionType::LOAD_GUEST_PAGE_FAULT => {
-            error!("LOAD_GUEST_PAGE_FAULT");
-            unreachable!();
+            info!("LOAD_GUEST_PAGE_FAULT");
+            guest_page_fault_handler(current_cpu);
         }
         ExceptionType::STORE_GUEST_PAGE_FAULT => {
-            error!("STORE_GUEST_PAGE_FAULT");
-            unreachable!();
+            info!("STORE_GUEST_PAGE_FAULT");
+            guest_page_fault_handler(current_cpu);
         }
         _ => {
             error!(
@@ -74,52 +75,11 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
         }
     }
 }
-pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
-    let ret = sbi_call_5(
-        current_cpu.x[17],
-        current_cpu.x[16],
-        current_cpu.x[10],
-        current_cpu.x[11],
-        current_cpu.x[12],
-        current_cpu.x[13],
-        current_cpu.x[14],
-    );
-    current_cpu.sepc += 4;
-    current_cpu.x[10] = ret.0;
-    current_cpu.x[11] = ret.1;
-    trace!("sbi_call_5: error:{:#x}, value:{:#x}", ret.0, ret.1);
+pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
+    let addr: HostPhysAddr = read_csr!(CSR_HTVAL) << 2;
+    info!("guest page fault at {:#x}", addr);
+    unreachable!();
 }
-pub fn sbi_call_5(
-    eid: usize,
-    fid: usize,
-    arg0: usize,
-    arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize,
-) -> (usize, usize) {
-    trace!("sbi_call_5: eid:{:#x}, fid:{:#x}", eid, fid);
-    if eid == 0x54494D45 {
-        debug!("VS set timer");
-        write_csr!(CSR_HVIP, 0); //VSTIP
-        write_csr!(CSR_SIE, 1 << 9 | 1 << 5 | 1 << 1);
-    }
-    let (error, value);
-    unsafe {
-        core::arch::asm!(
-            "ecall",
-            in("a7") eid,
-            in("a6") fid,
-            inlateout("a0") arg0 => error,
-            inlateout("a1") arg1 => value,
-            in("a2") arg2,
-            in("a3") arg3,
-            in("a4") arg4,
-        );
-    }
-    (error, value)
-}
-static mut coputer: usize = 0;
 pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     trace!("interrupts_arch_handle");
 

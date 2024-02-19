@@ -28,17 +28,20 @@ impl ArchCpu {
     pub fn stack_top(&self) -> VirtAddr {
         PER_CPU_ARRAY_PTR as VirtAddr + (self.get_hartid() + 1) as usize * PER_CPU_SIZE - 8
     }
-    pub fn init(&mut self, entry: usize) -> usize {
+    pub fn init(&mut self, entry: usize, cpu_id: usize, dtb: usize) -> usize {
         //self.sepc = guest_test as usize as u64;
+        write_csr!(CSR_SSCRARCH, self as *const _ as usize); //arch cpu pointer
         self.sepc = entry;
         self.hstatus = 1 << 7 | 2 << 32; //HSTATUS_SPV | HSTATUS_VSXL_64
         self.sstatus = 1 << 8; //SPP
         self.stack_top = self.stack_top() as usize;
+        self.x[10] = cpu_id; //cpu id
+        self.x[11] = dtb; //dtb addr
         trace!("stack_top: {:#x}", self.stack_top);
-        write_csr!(CSR_SSCRARCH, self as *const _ as usize); //arch cpu
-        write_csr!(CSR_SSTATUS, self.sstatus);
-        write_csr!(CSR_HSTATUS, self.hstatus);
-        write_csr!(CSR_SEPC, self.sepc);
+
+        // write_csr!(CSR_SSTATUS, self.sstatus);
+        // write_csr!(CSR_HSTATUS, self.hstatus);
+        // write_csr!(CSR_SEPC, self.sepc);
         write_csr!(CSR_HIDELEG, 1 << 2 | 1 << 6 | 1 << 10); //HIDELEG_VSSI | HIDELEG_VSTI | HIDELEG_VSEI
         write_csr!(CSR_HEDELEG, 1 << 8 | 1 << 12 | 1 << 13 | 1 << 15); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
         write_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
@@ -63,9 +66,13 @@ impl ArchCpu {
         value = read_csr!(CSR_HGATP);
         info!("CSR_HGATP: {:#x}", value);
         info!("Go to Guest!");
-        unreachable!();
+        //unreachable!();
+        extern "C" {
+            fn vcpu_arch_entry();
+        }
         unsafe {
-            ::core::arch::asm!("sret",);
+            vcpu_arch_entry();
+            //::core::arch::asm!("sret",);
         }
         0
     }

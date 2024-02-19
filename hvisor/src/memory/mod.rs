@@ -18,6 +18,7 @@ use core::ops::{Deref, DerefMut};
 use bitflags::bitflags;
 use spin::{Once, RwLock};
 
+use crate::memory::addr::align_up;
 pub use frame::Frame;
 pub use mm::{MemoryRegion, MemorySet, PARKING_INST_PAGE};
 pub use paging::{
@@ -77,77 +78,117 @@ pub fn init_heap() {
 pub fn init_frame_allocator() {
     frame::init();
 }
-pub fn init_hv_page_table() -> usize {
-    // let hv_phys_start: PhysAddr = HV_PHY_BASE;
-    // let hv_phys_end: PhysAddr = virt_to_phys(hv_end());
-    let hv_phys_start: PhysAddr = 0x8000_0000;
-    let hv_phys_end: PhysAddr = hv_phys_start + 0x1000_0000;
+pub fn init_hv_page_table(fdt: fdt::Fdt) -> HvResult {
     let mut hv_pt: MemorySet<Stage1PageTable> = MemorySet::new();
-
-    let _ = hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-        0x8000_0000 as HostVirtAddr,
-        hv_phys_start as HostPhysAddr,
-        (hv_phys_end - hv_phys_start) as usize,
+    // let _ = hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+    //     0x8000_0000 as HostVirtAddr,
+    //     hv_phys_start as HostPhysAddr,
+    //     (hv_phys_end - hv_phys_start) as usize,
+    //     MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
+    // ));
+    debug!("fdt: {:?}", fdt);
+    // The first memory region is used to map the guest physical memory.
+    let mem_region = fdt.memory().regions().next().unwrap();
+    debug!("map mem_region: {:?}", mem_region);
+    hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+        mem_region.starting_address as GuestPhysAddr,
+        mem_region.starting_address as HostPhysAddr,
+        mem_region.size.unwrap(),
         MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
-    ));
+    ))?;
+    // probe virtio mmio device
+    for node in fdt.find_all_nodes("/soc/virtio_mmio") {
+        if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+            let paddr = reg.starting_address as HostPhysAddr;
+            let size = reg.size.unwrap();
+            debug!("map virtio mmio addr: {:#x}, size: {:#x}", paddr, size);
+            hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+                paddr as GuestPhysAddr,
+                paddr,
+                size,
+                MemFlags::READ | MemFlags::WRITE,
+            ))?;
+        }
+    }
 
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     trampoline_page as GuestPhysAddr,
-    //     trampoline_page as HostPhysAddr,
-    //     PAGE_SIZE as usize,
-    //     MemFlags::READ | MemFlags::WRITE,
-    // ))?;
+    // probe virt test
+    for node in fdt.find_all_nodes("/soc/test") {
+        if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+            let paddr = reg.starting_address as HostPhysAddr;
+            let size = reg.size.unwrap();
+            debug!("map test addr: {:#x}, size: {:#x}", paddr, size);
+            hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+                paddr as GuestPhysAddr,
+                paddr,
+                size,
+                MemFlags::READ | MemFlags::WRITE,
+            ))?;
+        }
+    }
 
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     UART_BASE_VIRT,
-    //     sys_config.debug_console.address as PhysAddr,
-    //     sys_config.debug_console.size as usize,
-    //     MemFlags::READ | MemFlags::WRITE | MemFlags::IO,
-    // ))?;
+    // probe uart device
+    for node in fdt.find_all_nodes("/soc/uart") {
+        if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+            let paddr = reg.starting_address as HostPhysAddr;
+            let size = align_up(reg.size.unwrap());
+            debug!("map uart addr: {:#x}, size: {:#x}", paddr, size);
+            hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+                paddr as GuestPhysAddr,
+                paddr,
+                size,
+                MemFlags::READ | MemFlags::WRITE,
+            ))?;
+        }
+    }
 
-    // // add gicd memory map
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     gicd_base as GuestPhysAddr,
-    //     gicd_base as HostPhysAddr,
-    //     GICD_SIZE as usize,
-    //     MemFlags::READ | MemFlags::WRITE | MemFlags::IO,
-    // ))?;
-    // //add gicr memory map
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     gicr_base as GuestPhysAddr,
-    //     gicr_base as HostPhysAddr,
-    //     gicr_size as usize,
-    //     MemFlags::READ | MemFlags::WRITE | MemFlags::IO,
-    // ))?;
-    // // Map pci region. Jailhouse doesn't map pci region to el2.
-    // // Now we simplify the complex pci handler and just map it.
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     mmcfg_start as GuestPhysAddr,
-    //     mmcfg_start as HostPhysAddr,
-    //     mmcfg_size as usize,
-    //     MemFlags::READ | MemFlags::WRITE | MemFlags::IO,
-    // ))?;
+    // probe clint(core local interrupter)
+    for node in fdt.find_all_nodes("/soc/clint") {
+        if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+            let paddr = reg.starting_address as HostPhysAddr;
+            let size = reg.size.unwrap();
+            debug!("map clint addr: {:#x}, size: {:#x}", paddr, size);
+            hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+                paddr as GuestPhysAddr,
+                paddr,
+                size,
+                MemFlags::READ | MemFlags::WRITE,
+            ))?;
+        }
+    }
 
-    // // add virtio map
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     0xa000000 as GuestPhysAddr,
-    //     0xa000000 as HostPhysAddr,
-    //     0x4000 as usize,
-    //     MemFlags::READ | MemFlags::WRITE | MemFlags::IO,
-    // ))?;
+    // probe plic
+    //TODO: remove plic map from vm
+    for node in fdt.find_all_nodes("/soc/plic") {
+        if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+            let paddr = reg.starting_address as HostPhysAddr;
+            let size = reg.size.unwrap();
+            debug!("map plic addr: {:#x}, size: {:#x}", paddr, size);
+            hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+                paddr as GuestPhysAddr,
+                paddr,
+                size,
+                MemFlags::READ | MemFlags::WRITE,
+            ))?;
+        }
+    }
 
-    // // add virt gic its
-    // hv_pt.insert(MemoryRegion::new_with_offset_mapper(
-    //     0x8080000 as GuestPhysAddr,
-    //     0x8080000 as HostPhysAddr,
-    //     0x20000 as usize,
-    //     MemFlags::READ | MemFlags::WRITE | MemFlags::IO,
-    // ))?;
-
+    for node in fdt.find_all_nodes("/soc/pci") {
+        if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+            let paddr = reg.starting_address as HostPhysAddr;
+            let size = reg.size.unwrap();
+            debug!("map pci addr: {:#x}, size: {:#x}", paddr, size);
+            hv_pt.insert(MemoryRegion::new_with_offset_mapper(
+                paddr as GuestPhysAddr,
+                paddr,
+                size,
+                MemFlags::READ | MemFlags::WRITE,
+            ))?;
+        }
+    }
     info!("Hypervisor page table init end.");
     debug!("Hypervisor virtual memory set: {:#x?}", hv_pt);
 
     HV_PT.call_once(|| RwLock::new(hv_pt));
 
-    0
+    Ok(())
 }

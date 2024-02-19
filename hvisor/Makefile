@@ -54,9 +54,9 @@ QEMU_ARGS +=-nographic
 QEMU_ARGS +=-cpu rv64 
 QEMU_ARGS +=-m 4G 
 QEMU_ARGS +=-bios $(BOOTLOADER)
-#QEMU_ARGS +=-kernel ../guests/Image-62 
-#QEMU_ARGS +=-drive file=../guests/rootfs-busybox.img,format=raw,id=hd0 
-#QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
+# QEMU_ARGS +=-kernel ../guests/Image-62 
+QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd0 
+QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
 #QEMU_ARGS +=-append "root=/dev/vda rw console=ttyS0"
 #QEMU_ARGS +=-kernel $(KERNEL_BIN)
 QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
