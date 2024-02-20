@@ -3,6 +3,7 @@
 use crate::arch::riscv::csr::*;
 use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
 use crate::memory::addr::VirtAddr;
+use riscv::register::sie;
 #[repr(C)]
 #[derive(Debug)]
 pub struct ArchCpu {
@@ -33,7 +34,7 @@ impl ArchCpu {
         write_csr!(CSR_SSCRARCH, self as *const _ as usize); //arch cpu pointer
         self.sepc = entry;
         self.hstatus = 1 << 7 | 2 << 32; //HSTATUS_SPV | HSTATUS_VSXL_64
-        self.sstatus = 1 << 8; //SPP
+        self.sstatus = 1 << 8 | 1 << 63 | 3 << 13 | 3 << 15; //SPP
         self.stack_top = self.stack_top() as usize;
         self.x[10] = cpu_id; //cpu id
         self.x[11] = dtb; //dtb addr
@@ -44,11 +45,18 @@ impl ArchCpu {
         // write_csr!(CSR_SEPC, self.sepc);
         write_csr!(CSR_HIDELEG, 1 << 2 | 1 << 6 | 1 << 10); //HIDELEG_VSSI | HIDELEG_VSTI | HIDELEG_VSEI
         write_csr!(CSR_HEDELEG, 1 << 8 | 1 << 12 | 1 << 13 | 1 << 15); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
-        write_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
+        write_csr!(CSR_HCOUNTEREN, 0xffff_ffff); //HCOUNTEREN_TM
         write_csr!(CSR_HTIMEDELTA, 0);
-        write_csr!(CSR_VSSTATUS, 1 << 63 | 3 << 13 | 3 << 15); //SSTATUS_SD | SSTATUS_FS_DIRTY | SSTATUS_XS_DIRTY
-        write_csr!(CSR_SIE, 1 << 9 | 1 << 5 | 1 << 1); //SEIE STIE SSIE
-        write_csr!(CSR_HIE, 1 << 12 | 1 << 10 | 1 << 6 | 1 << 2); //SGEIE VSEIE VSTIE VSSIE
+        //write_csr!(CSR_VSSTATUS, 1 << 63 | 3 << 13 | 3 << 15); //SSTATUS_SD | SSTATUS_FS_DIRTY | SSTATUS_XS_DIRTY
+        //write_csr!(CSR_SIE, 1 << 9 | 1 << 5 | 1 << 1); //SEIE STIE SSIE
+        // enable all interupts
+        unsafe {
+            sie::set_sext();
+            sie::set_ssoft();
+            sie::set_stimer();
+        }
+        // write_csr!(CSR_HIE, 1 << 12 | 1 << 10 | 1 << 6 | 1 << 2); //SGEIE VSEIE VSTIE VSSIE
+        write_csr!(CSR_HIE, 0);
         write_csr!(CSR_VSTVEC, 0);
         write_csr!(CSR_VSSCRATCH, 0);
         write_csr!(CSR_VSEPC, 0);

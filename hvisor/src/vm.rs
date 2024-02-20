@@ -2,10 +2,10 @@ use core::char::decode_utf16;
 use core::mem::{self};
 
 use crate::arch::riscv::s2pt::Stage2PageTable;
-use crate::device::qemu_riscv64_virt::*;
 use crate::error::HvResult;
 use crate::memory::addr::align_up;
 use crate::memory::{GuestPhysAddr, HostPhysAddr, MemFlags, MemoryRegion, MemorySet};
+use crate::plat::qemu_riscv64_virt::*;
 use crate::GUEST_DTB;
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -66,7 +66,7 @@ impl Vm {
         }
     }
     pub fn pt_init(&mut self, vm_paddr_start: usize, fdt: fdt::Fdt, dtb_addr: usize) -> HvResult {
-        debug!("fdt: {:?}", fdt);
+        trace!("fdt: {:?}", fdt);
         // The first memory region is used to map the guest physical memory.
         let mem_region = fdt.memory().regions().next().unwrap();
         debug!("map mem_region: {:?}", mem_region);
@@ -103,13 +103,13 @@ impl Vm {
         for node in fdt.find_all_nodes("/soc/test") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
-                let size = reg.size.unwrap();
+                let size = reg.size.unwrap() + 0x1000;
                 debug!("map test addr: {:#x}, size: {:#x}", paddr, size);
                 self.gpm.insert(MemoryRegion::new_with_offset_mapper(
                     paddr as GuestPhysAddr,
                     paddr,
                     size,
-                    MemFlags::READ | MemFlags::WRITE,
+                    MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
                 ))?;
             }
         }

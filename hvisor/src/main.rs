@@ -15,7 +15,11 @@
 #![feature(asm_const)]
 use core::{arch::global_asm, mem};
 
-use crate::{arch::riscv::cpu, memory::frame::Frame, percpu::PerCpu};
+use crate::{
+    arch::riscv::{cpu, plic::init_plic},
+    memory::frame::Frame,
+    percpu::PerCpu,
+};
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -28,11 +32,11 @@ mod error;
 mod console;
 mod arch;
 mod consts;
-mod device;
 mod lang_items;
 mod logging;
 mod memory;
 mod percpu;
+mod plat;
 mod vm;
 #[link_section = ".dtb"]
 /// the guest dtb file
@@ -41,7 +45,9 @@ pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
 #[link_section = ".initrd"]
 static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
     *include_bytes!("../../guests/Image-62");
-
+// #[link_section = ".initrd"]
+// static GUEST: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
+//     *include_bytes!("../../guests/os_ch5_802.bin");
 global_asm!(include_str!("arch/riscv/arch_entry.S"));
 
 /// clear BSS segment
@@ -108,7 +114,8 @@ pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
         memory::hv_page_table().read().activate();
     }
     arch::riscv::trap::init();
-
+    let plic_info = host_fdt.find_node("/soc/plic").unwrap();
+    init_plic(plic_info.reg().unwrap().next().unwrap().starting_address as usize);
     let cpu = PerCpu::new(cpuid);
     debug!(
         "guest entry: {:#x}, guest size: {:#x}",

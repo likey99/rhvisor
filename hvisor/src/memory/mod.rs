@@ -86,7 +86,7 @@ pub fn init_hv_page_table(fdt: fdt::Fdt) -> HvResult {
     //     (hv_phys_end - hv_phys_start) as usize,
     //     MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
     // ));
-    debug!("fdt: {:?}", fdt);
+    trace!("fdt: {:?}", fdt);
     // The first memory region is used to map the guest physical memory.
     let mem_region = fdt.memory().regions().next().unwrap();
     debug!("map mem_region: {:?}", mem_region);
@@ -115,13 +115,13 @@ pub fn init_hv_page_table(fdt: fdt::Fdt) -> HvResult {
     for node in fdt.find_all_nodes("/soc/test") {
         if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
             let paddr = reg.starting_address as HostPhysAddr;
-            let size = reg.size.unwrap();
+            let size = reg.size.unwrap() + 0x1000;
             debug!("map test addr: {:#x}, size: {:#x}", paddr, size);
             hv_pt.insert(MemoryRegion::new_with_offset_mapper(
                 paddr as GuestPhysAddr,
                 paddr,
                 size,
-                MemFlags::READ | MemFlags::WRITE,
+                MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
             ))?;
         }
     }
@@ -157,7 +157,6 @@ pub fn init_hv_page_table(fdt: fdt::Fdt) -> HvResult {
     }
 
     // probe plic
-    //TODO: remove plic map from vm
     for node in fdt.find_all_nodes("/soc/plic") {
         if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
             let paddr = reg.starting_address as HostPhysAddr;

@@ -1,6 +1,6 @@
 pub mod cpu;
 pub mod csr;
-//pub mod plic;
+pub mod plic;
 pub mod s1pt;
 pub mod s2pt;
 pub mod sbi;
