@@ -7,6 +7,7 @@ use crate::arch::riscv::{csr::*, trap};
 use crate::memory::{GuestPhysAddr, HostPhysAddr};
 use crate::percpu;
 use core::arch::{asm, global_asm};
+use core::time;
 use riscv::register::mtvec::TrapMode;
 use riscv::register::stvec;
 use riscv::register::{hvip, sie};
@@ -63,7 +64,7 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
             current_cpu.sepc += 4;
         }
         ExceptionType::LOAD_GUEST_PAGE_FAULT => {
-            info!("LOAD_GUEST_PAGE_FAULT");
+            trace!("LOAD_GUEST_PAGE_FAULT");
             guest_page_fault_handler(current_cpu);
         }
         ExceptionType::STORE_GUEST_PAGE_FAULT => {
@@ -81,7 +82,7 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
 }
 pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
     let addr: HostPhysAddr = read_csr!(CSR_HTVAL) << 2;
-    info!("guest page fault at {:#x}", addr);
+    trace!("guest page fault at {:#x}", addr);
     if addr >= 0x0c00_0000 && addr < 0x1000_0000 {
         let mut inst: u32 = read_csr!(CSR_HTINST) as u32;
         if inst == 0 {
@@ -147,6 +148,7 @@ fn decode_inst(inst: u32) -> (usize, Option<Instruction>) {
     };
     (len, riscv_decode::decode(inst).ok())
 }
+static mut time_irq: usize = 0;
 pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     trace!("interrupts_arch_handle");
     let trap_code: usize;
@@ -159,6 +161,11 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
             unsafe {
                 hvip::set_vstip();
                 sie::clear_stimer();
+                // time_irq += 1;
+                // if (time_irq == 100) {
+                //     warn!("trigger a external irq");
+                //     handle_irq(current_cpu);
+                // }
             }
             // write_csr!(CSR_SIE, 1 << 9 | 1 << 1); // clear the timer interrupt pending bit
             trace!("sip{:#x}", read_csr!(CSR_SIP));
@@ -189,7 +196,13 @@ pub fn handle_irq(current_cpu: &mut ArchCpu) {
     // get current guest context id
     let context_id = 2 * 0 + 1;
     let claim_and_complete_addr = 0x0c00_0000 + 0x0020_0004 + 0x1000 * context_id;
-    let irq = unsafe { core::ptr::read(claim_and_complete_addr as *const u32) };
+    let mut irq = unsafe { core::ptr::read(claim_and_complete_addr as *const u32) };
+    // unsafe {
+    //     if (time_irq == 100) {
+    //         irq = 10;
+    //     }
+    // }
+    info!("get irq{}@{:#x}", irq, claim_and_complete_addr);
     let mut host_plic = PLIC.get().expect("Uninitialized hypervisor plic!").write();
     host_plic.claim_complete[context_id] = irq;
     drop(host_plic);

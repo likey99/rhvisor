@@ -54,7 +54,7 @@ impl Plic {
 //     }
 // }
 pub fn vplic_hart_emul_handler(current_cpu: &mut ArchCpu, addr: GuestPhysAddr, inst: Instruction) {
-    debug!("handle PLIC access addr@{:#x}", addr);
+    trace!("handle PLIC access addr@{:#x}", addr);
     let host_plic = PLIC.get().expect("Uninitialized hypervisor plic!").read();
     let offset = addr.wrapping_sub(host_plic.base);
     drop(host_plic);

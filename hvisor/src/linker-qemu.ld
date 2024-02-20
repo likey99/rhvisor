@@ -53,7 +53,7 @@ SECTIONS
     .dtb : {
         *(.dtb)
     }
-    . = ALIGN(4K);
+    . = 0x90000000;
     vmimg = .;
     .initrd : {
         *(.initrd)
