@@ -202,7 +202,7 @@ pub fn handle_irq(current_cpu: &mut ArchCpu) {
     //         irq = 10;
     //     }
     // }
-    info!("get irq{}@{:#x}", irq, claim_and_complete_addr);
+    debug!("get external irq{}@{:#x}", irq, claim_and_complete_addr);
     let mut host_plic = PLIC.get().expect("Uninitialized hypervisor plic!").write();
     host_plic.claim_complete[context_id] = irq;
     drop(host_plic);

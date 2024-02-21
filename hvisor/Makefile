@@ -55,9 +55,10 @@ QEMU_ARGS +=-cpu rv64
 QEMU_ARGS +=-m 3G 
 QEMU_ARGS +=-bios default
 # QEMU_ARGS +=-bios $(BOOTLOADER)
-# QEMU_ARGS +=-kernel ../guests/Image-62 
+#  QEMU_ARGS +=-kernel ../guests/Image-62 
 QEMU_ARGS +=-kernel $(KERNEL_BIN)
 QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd0 
+#QEMU_ARGS +=-drive file=../guests/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
 QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
 QEMU_ARGS +=-append "root=/dev/vda rw console=ttyS0"
 
