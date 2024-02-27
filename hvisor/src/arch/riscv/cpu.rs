@@ -7,7 +7,7 @@ use riscv::register::sie;
 #[repr(C)]
 #[derive(Debug)]
 pub struct ArchCpu {
-    pub x: [usize; 32], //x1~x31
+    pub x: [usize; 32], //x0~x31
     pub hstatus: usize,
     pub sstatus: usize,
     pub sepc: usize,
