@@ -7,7 +7,7 @@ pub const HV_MEM_POOL_SIZE: usize = 16 * 1024 * 1024; // 16 MB
 
 pub const PER_CPU_ARRAY_PTR: *mut VirtAddr = __core_end as _;
 /// Size of the per-CPU data (stack and other CPU-local data).
-pub const PER_CPU_SIZE: usize = 64 * 1024; // 64KB  //may get bigger when dev
+pub const PER_CPU_SIZE: usize = 32 * 1024; // 64KB  //may get bigger when dev
 pub const MAX_CPU_NUM: usize = 8;
 
 /// Size of the per cpu boot stack

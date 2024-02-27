@@ -53,16 +53,17 @@ QEMU_ARGS := -machine virt
 QEMU_ARGS +=-nographic 
 QEMU_ARGS +=-cpu rv64 
 QEMU_ARGS +=-m 3G 
-QEMU_ARGS +=-bios default
-# QEMU_ARGS +=-bios $(BOOTLOADER)
+# QEMU_ARGS +=-bios default
+QEMU_ARGS +=-bios $(BOOTLOADER)
 #  QEMU_ARGS +=-kernel ../guests/Image-62 
-QEMU_ARGS +=-kernel $(KERNEL_BIN)
+# QEMU_ARGS +=-kernel $(KERNEL_BIN)
 QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd0 
 #QEMU_ARGS +=-drive file=../guests/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
 QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
-QEMU_ARGS +=-append "root=/dev/vda rw console=ttyS0"
+# QEMU_ARGS +=-append "root=/dev/vda rw console=ttyS0"
 
-#QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
+QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
+# QEMU_ARGS +=		 -device loader,file=../guests/Image-62,addr=$(KERNEL_ENTRY_PA) 
 #QEMU_ARGS +=		 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 			 
 #QEMU_ARGS +=		 -device virtio-serial-port -chardev pty,id=serial3 -device virtconsole,chardev=serial3 \
 

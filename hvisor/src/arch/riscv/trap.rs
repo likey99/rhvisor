@@ -196,7 +196,7 @@ pub fn handle_irq(current_cpu: &mut ArchCpu) {
     // get current guest context id
     let context_id = 2 * 0 + 1;
     let claim_and_complete_addr = 0x0c00_0000 + 0x0020_0004 + 0x1000 * context_id;
-    let mut irq = unsafe { core::ptr::read(claim_and_complete_addr as *const u32) };
+    let mut irq = unsafe { core::ptr::read_volatile(claim_and_complete_addr as *const u32) };
     // unsafe {
     //     if (time_irq == 100) {
     //         irq = 10;

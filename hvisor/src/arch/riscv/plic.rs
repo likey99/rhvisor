@@ -64,7 +64,6 @@ pub fn vplic_hart_emul_handler(current_cpu: &mut ArchCpu, addr: GuestPhysAddr, i
         let index = ((offset - PLIC_GLOBAL_SIZE) & 0xfff) >> 2;
         if index == 0 {
             // threshold
-            //inst lw=>true   sw=>false
             match inst {
                 Instruction::Sw(i) => {
                     // guest write threshold register to plic core
