@@ -19,8 +19,7 @@
 	};
 
 	chosen {
-		bootargs = "root=/dev/vda rw";
-		stdout-path = "/soc/uart@10000000";
+		bootargs = "root=/dev/vda rw earlycon console=ttyS0";
 	};
 
 	platform@4000000 {
@@ -47,7 +46,7 @@
 			reg = <0x00>;
 			status = "okay";
 			compatible = "riscv";
-			riscv,isa = "rv64imafdch_zicsr_zifencei_zihintpause_zba_zbb_zbc_zbs_sstc";
+			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv39";
 
 			interrupt-controller {

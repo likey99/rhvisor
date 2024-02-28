@@ -41,7 +41,7 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
     trace!("sync_exception_handler");
     trace!("current_cpu: stack{:#x}", current_cpu.stack_top);
     let trap_code = read_csr!(CSR_SCAUSE);
-    trace!("CSR_SCAUSE: {:#x}", trap_code);
+    trace!("CSR_SCAUSE: {}", trap_code);
     if (read_csr!(CSR_HSTATUS) & (1 << 7)) == 0 {
         //HSTATUS_SPV
         error!("exception from HS mode");
@@ -72,11 +72,15 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
             guest_page_fault_handler(current_cpu);
         }
         _ => {
-            error!(
-                "unhandled trap {:#x},sepc: {:#x}",
-                trap_code, current_cpu.sepc
+            warn!("skip trap {},sepc: {:#x}", trap_code, current_cpu.sepc);
+            warn!(
+                "skip trap info: {} {:#x} {:#x}",
+                trap_code, trap_value, trap_ins
             );
-            unreachable!();
+            let raw_inst=read_inst(trap_pc);
+            let inst=riscv_decode::decode(raw_inst);
+            warn!("trap ins: {:#x}  {:?}", raw_inst,inst);
+            current_cpu.sepc += 4;
         }
     }
 }
