@@ -9,7 +9,7 @@ use crate::percpu;
 use core::arch::{asm, global_asm};
 use core::time;
 use riscv::register::mtvec::TrapMode;
-use riscv::register::stvec;
+use riscv::register::{hcounteren, stvec};
 use riscv::register::{hvip, sie};
 use riscv_decode::Instruction;
 extern "C" {
@@ -77,9 +77,13 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
                 "skip trap info: {} {:#x} {:#x}",
                 trap_code, trap_value, trap_ins
             );
-            let raw_inst=read_inst(trap_pc);
-            let inst=riscv_decode::decode(raw_inst);
-            warn!("trap ins: {:#x}  {:?}", raw_inst,inst);
+            let raw_inst = read_inst(trap_pc);
+            let inst = riscv_decode::decode(raw_inst);
+            warn!("trap ins: {:#x}  {:?}", raw_inst, inst);
+            let hcounteren = read_csr!(CSR_HCOUNTEREN);
+            warn!("hcounteren: {:#x}", hcounteren);
+            let scounteren = read_csr!(CSR_SCOUNTEREN);
+            warn!("scounteren: {:#x}", scounteren);
             current_cpu.sepc += 4;
         }
     }

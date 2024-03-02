@@ -56,13 +56,15 @@ QEMU_ARGS +=-m 3G
 # QEMU_ARGS +=-bios default
 QEMU_ARGS +=-bios $(BOOTLOADER)
 # QEMU_ARGS +=-kernel ../guests/Image-62 
-# QEMU_ARGS +=-kernel $(KERNEL_BIN)
-QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd0 
-# QEMU_ARGS +=-drive file=../guests/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
+# QEMU_ARGS +=-kernel ../guests/bao-linux.bin
+QEMU_ARGS +=-kernel $(KERNEL_BIN)
+# QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd0 
+QEMU_ARGS +=-drive file=../guests/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
 QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
+# QEMU_ARGS +=-append "earlycon console=ttyS0"
 # QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=hvc0"
 
-QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
+# QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
 # QEMU_ARGS +=		 -device loader,file=../guests/Image-62,addr=$(KERNEL_ENTRY_PA) 
 #QEMU_ARGS +=		 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 			 
 # QEMU_ARGS +=		 -device virtio-serial-device -chardev pty,id=serial3 -device virtconsole,chardev=serial3
@@ -79,7 +81,7 @@ QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
 # QEMU_ARGS	+=-netdev user,id=net0,hostfwd=udp::6200-:2000
 
 run-inner: build
-	@qemu-system-riscv64 $(QEMU_ARGS) -S
+	@qemu-system-riscv64 $(QEMU_ARGS)
 
 debug: build
 	@qemu-system-riscv64 $(QEMU_ARGS) -s -S

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 pub const CSR_SCAUSE: u64 = 0x142;
 pub const CSR_STVEC: u64 = 0x105;
+pub const CSR_SCOUNTEREN: u64 = 0x106;
 pub const CSR_SEPC: u64 = 0x141;
 pub const CSR_SSTATUS: u64 = 0x100;
 pub const CSR_SSCRARCH: u64 = 0x140;
