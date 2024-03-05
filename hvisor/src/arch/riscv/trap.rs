@@ -1,7 +1,7 @@
 use super::cpu::ArchCpu;
 use super::plic::PLIC;
 use super::sbi::sbi_vs_handler;
-use crate::arch::riscv::plic::vplic_hart_emul_handler;
+use crate::arch::riscv::plic::{vplic_global_emul_handler,vplic_hart_emul_handler};
 use crate::arch::riscv::timer::{get_time, set_next_trigger};
 use crate::arch::riscv::{csr::*, trap};
 use crate::memory::{GuestPhysAddr, HostPhysAddr};
@@ -12,9 +12,10 @@ use riscv::register::mtvec::TrapMode;
 use riscv::register::{hcounteren, stvec};
 use riscv::register::{hvip, sie};
 use riscv_decode::Instruction;
+use crate::plat::qemu_riscv64_virt::PLIC_GLOBAL_SIZE;
+use crate::arch::riscv::plic::host_plic;
 extern "C" {
     fn _hyp_trap_vector();
-    fn boot_stack_top();
 }
 global_asm!(include_str!("trap.S"),
 sync_exception_handler=sym sync_exception_handler,
@@ -91,13 +92,14 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
 pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
     let addr: HostPhysAddr = read_csr!(CSR_HTVAL) << 2;
     trace!("guest page fault at {:#x}", addr);
+    //TODO: get plic addr range from dtb or vpliv object
     if addr >= 0x0c00_0000 && addr < 0x1000_0000 {
+        trace!("PLIC access");
         let mut inst: u32 = read_csr!(CSR_HTINST) as u32;
         if inst == 0 {
             let inst_addr: GuestPhysAddr = current_cpu.sepc;
-            //TODO: load real ins from guest memmory
+            //load real ins from guest memmory
             inst = read_inst(inst_addr);
-            //let inst = unsafe { core::ptr::read(inst_addr as *const usize) };
         } else if inst == 0x3020 || inst == 0x3000 {
             // TODO: we should reinject this in the guest as a fault access
             error!("fault on 1st stage page table walk");
@@ -110,7 +112,10 @@ pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
         //TODO: decode inst to real instruction
         let (len, inst) = decode_inst(inst);
         if let Some(inst) = inst {
-            vplic_hart_emul_handler(current_cpu, addr, inst);
+            if addr>=host_plic().read().base+PLIC_GLOBAL_SIZE{
+                vplic_hart_emul_handler(current_cpu, addr, inst);
+            }
+            vplic_global_emul_handler(current_cpu, addr, inst);
             current_cpu.sepc += len;
         } else {
             error!("Invalid instruction at {:#x}", current_cpu.sepc);
@@ -156,7 +161,7 @@ fn decode_inst(inst: u32) -> (usize, Option<Instruction>) {
     };
     (len, riscv_decode::decode(inst).ok())
 }
-static mut time_irq: usize = 0;
+/// handle external interrupt
 pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     trace!("interrupts_arch_handle");
     let trap_code: usize;
@@ -165,17 +170,10 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     match trap_code & 0xfff {
         InterruptType::STI => {
             trace!("STI");
-            // write_csr!(CSR_HVIP, 1 << 6); //inject VSTIP
             unsafe {
                 hvip::set_vstip();
                 sie::clear_stimer();
-                // time_irq += 1;
-                // if (time_irq == 100) {
-                //     warn!("trigger a external irq");
-                //     handle_irq(current_cpu);
-                // }
             }
-            // write_csr!(CSR_SIE, 1 << 9 | 1 << 1); // clear the timer interrupt pending bit
             trace!("sip{:#x}", read_csr!(CSR_SIP));
             trace!("sie {:#x}", read_csr!(CSR_SIE));
         }
@@ -200,25 +198,13 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
 pub fn handle_irq(current_cpu: &mut ArchCpu) {
     // TODO: handle other irq
     // check external interrupt && handle
-    //let host_plic = host_vmm.host_plic.as_mut().unwrap();
-    // get current guest context id
-    let context_id = 2 * 0 + 1;
-    let claim_and_complete_addr = 0x0c00_0000 + 0x0020_0004 + 0x1000 * context_id;
+    // sifive plic: context0=>cpu0,M mode,context1=>cpu0,S mode...
+    let context_id = 2 * current_cpu.hartid + 1;
+    let mut host_plic =host_plic();
+    let claim_and_complete_addr = host_plic.read().base + PLIC_GLOBAL_SIZE + 0x1000 * context_id + 0x4;
     let mut irq = unsafe { core::ptr::read_volatile(claim_and_complete_addr as *const u32) };
-    // unsafe {
-    //     if (time_irq == 100) {
-    //         irq = 10;
-    //     }
-    // }
-    debug!("get external irq{}@{:#x}", irq, claim_and_complete_addr);
-    let mut host_plic = PLIC.get().expect("Uninitialized hypervisor plic!").write();
-    host_plic.claim_complete[context_id] = irq;
-    drop(host_plic);
-    //host_plic.claim_complete[context_id] = irq;
-
+    debug!("CPU{} get external irq{}@{:#x}", current_cpu.hartid,irq, claim_and_complete_addr);
+    host_plic.write().claim_complete[context_id] = irq;
     // set external interrupt pending, which trigger guest interrupt
     unsafe { hvip::set_vseip() };
-
-    // set irq pending in host vmm
-    //host_vmm.irq_pending = true;
 }

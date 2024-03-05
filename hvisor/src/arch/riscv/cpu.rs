@@ -12,6 +12,7 @@ pub struct ArchCpu {
     pub sstatus: usize,
     pub sepc: usize,
     pub stack_top: usize,
+    pub hartid: usize,
 }
 impl ArchCpu {
     pub fn new(hartid: usize) -> Self {
@@ -21,10 +22,11 @@ impl ArchCpu {
             sstatus: 0,
             sepc: 0,
             stack_top: 0,
+            hartid,
         }
     }
     pub fn get_hartid(&self) -> usize {
-        0
+        self.hartid
     }
     pub fn stack_top(&self) -> VirtAddr {
         PER_CPU_ARRAY_PTR as VirtAddr + (self.get_hartid() + 1) as usize * PER_CPU_SIZE - 8

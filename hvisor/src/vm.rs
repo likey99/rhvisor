@@ -146,20 +146,20 @@ impl Vm {
 
         // probe plic
         //TODO: remove plic map from vm
-        for node in fdt.find_all_nodes("/soc/plic") {
-            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
-                let paddr = reg.starting_address as HostPhysAddr;
-                //let size = reg.size.unwrap();
-                let size = PLIC_GLOBAL_SIZE; //
-                debug!("map plic addr: {:#x}, size: {:#x}", paddr, size);
-                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
-                    paddr as GuestPhysAddr,
-                    paddr,
-                    size,
-                    MemFlags::READ | MemFlags::WRITE,
-                ))?;
-            }
-        }
+        // for node in fdt.find_all_nodes("/soc/plic") {
+        //     if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+        //         let paddr = reg.starting_address as HostPhysAddr;
+        //         //let size = reg.size.unwrap();
+        //         let size = PLIC_GLOBAL_SIZE; //
+        //         debug!("map plic addr: {:#x}, size: {:#x}", paddr, size);
+        //         self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+        //             paddr as GuestPhysAddr,
+        //             paddr,
+        //             size,
+        //             MemFlags::READ | MemFlags::WRITE,
+        //         ))?;
+        //     }
+        // }
 
         for node in fdt.find_all_nodes("/soc/pci") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {

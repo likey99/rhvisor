@@ -6,3 +6,4 @@ pub mod s2pt;
 pub mod sbi;
 pub mod timer;
 pub mod trap;
+pub mod entry;

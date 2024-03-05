@@ -13,13 +13,19 @@
 #![no_main]
 #![feature(panic_info_message)]
 #![feature(asm_const)]
+#![feature(naked_functions)]
 use core::{arch::global_asm, mem};
 
 use crate::{
-    arch::riscv::{cpu, plic::init_plic},
+    arch::riscv::{
+        cpu,
+        plic::{self, init_plic},
+    },
+    error::HvResult,
     memory::frame::Frame,
     percpu::PerCpu,
 };
+use core::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -55,7 +61,6 @@ static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
 // #[link_section = ".initrd"]
 // static GUEST: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
 //     *include_bytes!("../../guests/os_ch5_802.bin");
-global_asm!(include_str!("arch/riscv/arch_entry.S"));
 
 /// clear BSS segment
 pub fn clear_bss() {
@@ -65,7 +70,12 @@ pub fn clear_bss() {
     }
     (sbss as usize..ebss as usize).for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
 }
-
+static INITED_CPUS: AtomicU32 = AtomicU32::new(0);
+static ENTERED_CPUS: AtomicU32 = AtomicU32::new(0);
+static ACTIVATED_CPUS: AtomicU32 = AtomicU32::new(0);
+static INIT_EARLY_OK: AtomicU32 = AtomicU32::new(0);
+static INIT_LATE_OK: AtomicU32 = AtomicU32::new(0);
+static ERROR_NUM: AtomicI32 = AtomicI32::new(0);
 /// the rust entry-point of os
 #[no_mangle]
 pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
@@ -78,8 +88,6 @@ pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
         fn edata(); // end addr of data segment
         fn sbss(); // start addr of BSS segment
         fn ebss(); // end addr of BSS segment
-        fn boot_stack_lower_bound(); // stack lower bound
-        fn boot_stack_top(); // stack top
         fn __core_end(); // end of kernel
         fn gdtb();
         fn vmimg();
@@ -90,10 +98,6 @@ pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
     trace!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
     debug!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
     info!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
-    warn!(
-        "boot_stack top=bottom={:#x}, lower_bound={:#x}",
-        boot_stack_top as usize, boot_stack_lower_bound as usize
-    );
     error!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     println!("core_end: {:#x}", __core_end as usize);
     println!("gdtb: {:#x}", gdtb as usize);
@@ -122,7 +126,10 @@ pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
     }
     arch::riscv::trap::init();
     let plic_info = host_fdt.find_node("/soc/plic").unwrap();
-    init_plic(plic_info.reg().unwrap().next().unwrap().starting_address as usize);
+    init_plic(
+        plic_info.reg().unwrap().next().unwrap().starting_address as usize,
+        plic_info.reg().unwrap().next().unwrap().size.unwrap(),
+    );
     let cpu = PerCpu::new(cpuid);
     debug!(
         "guest entry: {:#x}, guest size: {:#x}",

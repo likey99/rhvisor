@@ -48,7 +48,6 @@
     sd   t0, 34*8(sp)
 
     ld   sp, 35*8(sp)
-    #la    sp, boot_stack_top
     csrr      a0, sscratch
     # .option push
     # .option norelax

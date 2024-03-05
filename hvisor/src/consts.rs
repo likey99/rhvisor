@@ -8,10 +8,9 @@ pub const HV_MEM_POOL_SIZE: usize = 16 * 1024 * 1024; // 16 MB
 pub const PER_CPU_ARRAY_PTR: *mut VirtAddr = __core_end as _;
 /// Size of the per-CPU data (stack and other CPU-local data).
 pub const PER_CPU_SIZE: usize = 32 * 1024; // 64KB  //may get bigger when dev
-pub const MAX_CPU_NUM: usize = 8;
+pub const MAX_CPU_NUM: usize = 1;
 
-/// Size of the per cpu boot stack
-pub const PER_CPU_BOOT_SIZE: usize = 1024; // 1KB
+
 /// Start virtual address of the hypervisor memory.
 pub const HV_BASE: VirtAddr = 0x80200000;
 pub const HV_PHY_BASE: PhysAddr = 0x80200000;
