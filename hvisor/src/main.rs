@@ -16,14 +16,18 @@
 #![feature(naked_functions)]
 use core::{arch::global_asm, mem};
 
+use fdt::Fdt;
+
 use crate::{
     arch::riscv::{
         cpu,
         plic::{self, init_plic},
     },
+    consts::{HV_PHY_BASE, MAX_CPU_NUM},
     error::HvResult,
     memory::frame::Frame,
     percpu::PerCpu,
+    zone::zone_create,
 };
 use core::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 #[macro_use]
@@ -43,11 +47,11 @@ mod logging;
 mod memory;
 mod percpu;
 mod plat;
-mod vm;
+mod zone;
 #[link_section = ".dtb"]
 /// the guest dtb file
-pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
-    *include_bytes!("../../guests/linux.dtb");
+pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
+    *include_bytes!("../../guests/linux3.dtb");
 #[link_section = ".initrd"]
 static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
     *include_bytes!("../../guests/Image-62");
@@ -75,10 +79,19 @@ static ENTERED_CPUS: AtomicU32 = AtomicU32::new(0);
 static ACTIVATED_CPUS: AtomicU32 = AtomicU32::new(0);
 static INIT_EARLY_OK: AtomicU32 = AtomicU32::new(0);
 static INIT_LATE_OK: AtomicU32 = AtomicU32::new(0);
-static ERROR_NUM: AtomicI32 = AtomicI32::new(0);
-/// the rust entry-point of os
-#[no_mangle]
-pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
+static MASTER_CPU: AtomicI32 = AtomicI32::new(-1);
+fn wait_for(condition: impl Fn() -> bool) -> HvResult {
+    while condition() {
+        core::hint::spin_loop();
+    }
+    Ok(())
+}
+
+fn wait_for_counter(counter: &AtomicU32, max_value: u32) -> HvResult {
+    wait_for(|| counter.load(Ordering::Acquire) < max_value)
+}
+
+fn primary_init_early(dtb: usize) -> HvResult {
     extern "C" {
         fn stext(); // begin addr of text segment
         fn etext(); // end addr of text segment
@@ -109,40 +122,89 @@ pub fn rust_main(cpuid: usize, dtb: usize) -> ! {
     memory::frame::frame_allocator_test();
     debug!("host dtb: {:#x}", dtb);
     let host_fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
-    //let vm_vaddr_start: usize = 0x8020_0000;
-    //let vm_paddr_start: usize = 0x8040_0000;
-    let vm_paddr_start: usize = GUEST.as_ptr() as usize;
-    //let vm_mem_size: usize = 0x0080_0000;
-    let guest_fdt = unsafe { fdt::Fdt::from_ptr(GUEST_DTB.as_ptr()) }.unwrap();
-    let mut vm = vm::Vm::new(0);
-    vm.pt_init(vm_paddr_start, guest_fdt, dtb).unwrap();
-    unsafe {
-        vm.gpm.activate();
-    }
-    //unreachable!();
     memory::init_hv_page_table(host_fdt).unwrap();
-    unsafe {
-        memory::hv_page_table().read().activate();
-    }
-    arch::riscv::trap::init();
     let plic_info = host_fdt.find_node("/soc/plic").unwrap();
     init_plic(
         plic_info.reg().unwrap().next().unwrap().starting_address as usize,
         plic_info.reg().unwrap().next().unwrap().size.unwrap(),
     );
-    let cpu = PerCpu::new(cpuid);
     debug!(
         "guest entry: {:#x}, guest size: {:#x}",
         GUEST.as_ptr() as usize,
         GUEST.len()
     );
-    let guest_entry = guest_fdt
-        .memory()
-        .regions()
-        .next()
-        .unwrap()
-        .starting_address as usize;
-    cpu.cpu_init(guest_entry, dtb);
+    for vmid in 0..1 {
+        let vm_paddr_start: usize = GUEST.as_ptr() as usize;
+        let guest_fdt = unsafe { fdt::Fdt::from_ptr(GUEST_DTB.as_ptr()) }.unwrap();
+        zone_create(vmid, vm_paddr_start, guest_fdt, dtb);
+    }
+    INIT_EARLY_OK.store(1, Ordering::Release);
+    Ok(())
+}
 
-    arch::riscv::sbi::shutdown(false)
+fn primary_init_late() {
+    info!("Primary CPU init late...");
+    INIT_LATE_OK.store(1, Ordering::Release);
+}
+
+fn per_cpu_init(cpu: &mut PerCpu) {
+    if cpu.zone.is_none() {
+        panic!("zone is not created for cpu {}", cpu.id);
+    }
+    unsafe {
+        memory::hv_page_table().read().activate();
+        cpu.zone.clone().unwrap().read().gpm_activate();
+    };
+    arch::riscv::trap::init();
+    println!("CPU {} init OK.", cpu.id);
+}
+fn wakeup_secondary_cpus(this_id: usize) {
+    for cpu_id in 0..MAX_CPU_NUM {
+        if cpu_id == this_id {
+            continue;
+        }
+        sbi_rt::hart_start(cpu_id, HV_PHY_BASE, 0);
+    }
+}
+/// the rust entry-point of os
+#[no_mangle]
+pub fn rust_main(cpuid: usize, host_dtb: usize) -> ! {
+    let mut is_primary = false;
+    if MASTER_CPU.load(Ordering::Acquire) == -1 {
+        MASTER_CPU.store(cpuid as i32, Ordering::Release);
+        is_primary = true;
+    }
+    let cpu = PerCpu::new(cpuid);
+    println!("Hello from CPU {},dtb {:#x}!", cpuid, host_dtb);
+    if is_primary {
+        wakeup_secondary_cpus(cpuid as usize);
+    }
+    wait_for(|| ENTERED_CPUS.load(Ordering::Acquire) < MAX_CPU_NUM as _);
+    assert_eq!(ENTERED_CPUS.load(Ordering::Acquire), MAX_CPU_NUM as _);
+
+    println!(
+        "{} CPU {} entered.",
+        if is_primary { "Primary" } else { "Secondary" },
+        cpuid
+    );
+
+    if is_primary {
+        primary_init_early(host_dtb); // create root cell here
+    } else {
+        wait_for_counter(&INIT_EARLY_OK, 1).unwrap();
+    }
+
+    per_cpu_init(cpu);
+
+    INITED_CPUS.fetch_add(1, Ordering::SeqCst);
+    wait_for_counter(&INITED_CPUS, MAX_CPU_NUM as _);
+    cpu.cpu_init(GUEST_DTB.as_ptr() as usize);
+
+    if is_primary {
+        primary_init_late();
+    } else {
+        wait_for_counter(&INIT_LATE_OK, 1);
+    }
+    cpu.run_vm();
+    arch::riscv::sbi::shutdown(false);
 }

@@ -1,19 +1,19 @@
 use super::cpu::ArchCpu;
 use super::plic::PLIC;
 use super::sbi::sbi_vs_handler;
-use crate::arch::riscv::plic::{vplic_global_emul_handler,vplic_hart_emul_handler};
+use crate::arch::riscv::plic::host_plic;
+use crate::arch::riscv::plic::{vplic_global_emul_handler, vplic_hart_emul_handler};
 use crate::arch::riscv::timer::{get_time, set_next_trigger};
 use crate::arch::riscv::{csr::*, trap};
 use crate::memory::{GuestPhysAddr, HostPhysAddr};
 use crate::percpu;
+use crate::plat::qemu_riscv64_virt::PLIC_GLOBAL_SIZE;
 use core::arch::{asm, global_asm};
 use core::time;
 use riscv::register::mtvec::TrapMode;
 use riscv::register::{hcounteren, stvec};
 use riscv::register::{hvip, sie};
 use riscv_decode::Instruction;
-use crate::plat::qemu_riscv64_virt::PLIC_GLOBAL_SIZE;
-use crate::arch::riscv::plic::host_plic;
 extern "C" {
     fn _hyp_trap_vector();
 }
@@ -73,19 +73,16 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
             guest_page_fault_handler(current_cpu);
         }
         _ => {
-            warn!("skip trap {},sepc: {:#x}", trap_code, current_cpu.sepc);
             warn!(
-                "skip trap info: {} {:#x} {:#x}",
-                trap_code, trap_value, trap_ins
+                "CPU {} trap {},sepc: {:#x}",
+                current_cpu.hartid, trap_code, current_cpu.sepc
             );
+            warn!("trap info: {} {:#x} {:#x}", trap_code, trap_value, trap_ins);
             let raw_inst = read_inst(trap_pc);
             let inst = riscv_decode::decode(raw_inst);
             warn!("trap ins: {:#x}  {:?}", raw_inst, inst);
-            let hcounteren = read_csr!(CSR_HCOUNTEREN);
-            warn!("hcounteren: {:#x}", hcounteren);
-            let scounteren = read_csr!(CSR_SCOUNTEREN);
-            warn!("scounteren: {:#x}", scounteren);
             current_cpu.sepc += 4;
+            //panic!("unhandled trap");
         }
     }
 }
@@ -112,7 +109,7 @@ pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
         //TODO: decode inst to real instruction
         let (len, inst) = decode_inst(inst);
         if let Some(inst) = inst {
-            if addr>=host_plic().read().base+PLIC_GLOBAL_SIZE{
+            if addr >= host_plic().read().base + PLIC_GLOBAL_SIZE {
                 vplic_hart_emul_handler(current_cpu, addr, inst);
             }
             vplic_global_emul_handler(current_cpu, addr, inst);
@@ -121,7 +118,7 @@ pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
             error!("Invalid instruction at {:#x}", current_cpu.sepc);
         }
     } else {
-        panic!("unmaped memmory");
+        panic!("unmaped memmory at {:#x}", addr);
     }
 }
 fn read_inst(addr: GuestPhysAddr) -> u32 {
@@ -163,7 +160,7 @@ fn decode_inst(inst: u32) -> (usize, Option<Instruction>) {
 }
 /// handle external interrupt
 pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
-    trace!("interrupts_arch_handle");
+    trace!("interrupts_arch_handle @CPU{}", current_cpu.hartid);
     let trap_code: usize;
     trap_code = read_csr!(CSR_SCAUSE);
     trace!("CSR_SCAUSE: {:#x}", trap_code);
@@ -200,10 +197,14 @@ pub fn handle_irq(current_cpu: &mut ArchCpu) {
     // check external interrupt && handle
     // sifive plic: context0=>cpu0,M mode,context1=>cpu0,S mode...
     let context_id = 2 * current_cpu.hartid + 1;
-    let mut host_plic =host_plic();
-    let claim_and_complete_addr = host_plic.read().base + PLIC_GLOBAL_SIZE + 0x1000 * context_id + 0x4;
+    let mut host_plic = host_plic();
+    let claim_and_complete_addr =
+        host_plic.read().base + PLIC_GLOBAL_SIZE + 0x1000 * context_id + 0x4;
     let mut irq = unsafe { core::ptr::read_volatile(claim_and_complete_addr as *const u32) };
-    debug!("CPU{} get external irq{}@{:#x}", current_cpu.hartid,irq, claim_and_complete_addr);
+    debug!(
+        "CPU{} get external irq{}@{:#x}",
+        current_cpu.hartid, irq, claim_and_complete_addr
+    );
     host_plic.write().claim_complete[context_id] = irq;
     // set external interrupt pending, which trigger guest interrupt
     unsafe { hvip::set_vseip() };

@@ -1,16 +1,25 @@
 //! SBI call wrappers
 
 #![allow(unused)]
+use crate::percpu::get_cpu_data;
+
 use super::cpu::ArchCpu;
 //use crate::arch::riscv::csr::*;
 use riscv::register::{hvip, sie};
 pub mod SBI_EID {
     pub const SET_TIMER: usize = 0x54494D45;
+    pub const EXTID_HSM: usize = 0x48534D;
 }
-pub const SBI_SUCCESS: usize = 0;
+pub const SBI_SUCCESS: i64 = 0;
+pub const SBI_ERR_FAILURE: i64 = -1;
+pub const SBI_ERR_NOT_SUPPORTED: i64 = -2;
+pub const SBI_ERR_INVALID_PARAM: i64 = -3;
+pub const SBI_ERR_DENIED: i64 = -4;
+pub const SBI_ERR_INVALID_ADDRESS: i64 = -5;
+pub const SBI_ERR_ALREADY_AVAILABLE: i64 = -6;
 pub struct SbiRet {
-    error: usize,
-    value: usize,
+    error: i64,
+    value: i64,
 }
 /// use sbi call to putchar in console (qemu uart handler)
 pub fn console_putchar(c: usize) {
@@ -48,9 +57,15 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
     match eid {
         //SBI_EXTID_BASE => sbi_ret = sbi_base_handler(fid, current_cpu),
         SBI_EID::SET_TIMER => sbi_ret = sbi_time_handler(current_cpu.x[10], fid),
+        SBI_EID::EXTID_HSM => {
+            sbi_ret = sbi_hsm_handler(fid, current_cpu);
+        }
         //_ => sbi_ret = sbi_dummy_handler(),
         _ => {
-            warn!("Pass through SBI call eid {:#x} fid:{:#x}", eid, fid);
+            warn!(
+                "Pass through SBI call eid {:#x} fid:{:#x} on CPU {}",
+                eid, fid, current_cpu.hartid
+            );
             sbi_ret = sbi_call_5(
                 eid,
                 fid,
@@ -62,8 +77,8 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
             );
         }
     }
-    current_cpu.x[10] = sbi_ret.error;
-    current_cpu.x[11] = sbi_ret.value;
+    current_cpu.x[10] = sbi_ret.error as usize;
+    current_cpu.x[11] = sbi_ret.value as usize;
 }
 
 pub fn sbi_call_5(
@@ -104,4 +119,50 @@ pub fn sbi_time_handler(stime: usize, fid: usize) -> SbiRet {
         sie::set_stimer();
     }
     return sbi_ret;
+}
+pub fn sbi_hsm_handler(fid: usize, current_cpu: &mut ArchCpu) -> SbiRet {
+    let mut sbi_ret = SbiRet {
+        error: SBI_SUCCESS,
+        value: 0,
+    };
+    match fid {
+        0 => {
+            // hsm start
+            sbi_ret = sbi_hsm_start_handler(current_cpu);
+        }
+        _ => {
+            error!("Unsupported HSM function {:#x}", fid);
+        }
+    }
+    sbi_ret
+}
+pub fn sbi_hsm_start_handler(current_cpu: &mut ArchCpu) -> SbiRet {
+    let mut sbi_ret = SbiRet {
+        error: SBI_SUCCESS,
+        value: 0,
+    };
+    let hartid = current_cpu.x[10];
+
+    if (hartid == current_cpu.hartid) {
+        sbi_ret.error = SBI_ERR_ALREADY_AVAILABLE;
+    } else {
+        //TODO:add sbi conext in archcpu
+        let hartid = current_cpu.x[10];
+        let start_addr = current_cpu.x[11];
+        let opaque = current_cpu.x[12];
+        let target_cpu = get_cpu_data(hartid);
+        target_cpu.cpu_on_entry = start_addr;
+        target_cpu.arch_cpu.sepc = start_addr;
+        target_cpu.arch_cpu.x[11] = opaque;
+        debug!(
+            "@CPU{} hartid: {:#x}, start_addr: {:#x}, opaque: {:#x}",
+            current_cpu.hartid, hartid, start_addr, opaque
+        );
+        let _ret = sbi_rt::send_ipi(0b1, 0);
+        debug!(
+            "send ipi to CPU{} ret: {} {}",
+            hartid, _ret.error, _ret.value
+        );
+    }
+    sbi_ret
 }

@@ -2,7 +2,8 @@
 
 use crate::arch::riscv::sbi::console_putchar;
 use core::fmt::{self, Write};
-
+use spin::Mutex;
+static PRINT_LOCK: Mutex<()> = Mutex::new(());
 struct Stdout;
 
 impl Write for Stdout {
@@ -15,6 +16,7 @@ impl Write for Stdout {
 }
 
 pub fn print(args: fmt::Arguments) {
+    let _locked = PRINT_LOCK.lock();
     Stdout.write_fmt(args).unwrap();
 }
 

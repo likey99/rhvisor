@@ -48,7 +48,7 @@ impl ArchCpu {
         write_csr!(CSR_HIDELEG, 1 << 2 | 1 << 6 | 1 << 10); //HIDELEG_VSSI | HIDELEG_VSTI | HIDELEG_VSEI
         write_csr!(CSR_HEDELEG, 1 << 8 | 1 << 12 | 1 << 13 | 1 << 15); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
         write_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
-        //In VU-mode, a counter is not readable unless the applicable bits are set in both hcounteren and scounteren.
+                                            //In VU-mode, a counter is not readable unless the applicable bits are set in both hcounteren and scounteren.
         write_csr!(CSR_SCOUNTEREN, 1 << 1);
         write_csr!(CSR_HTIMEDELTA, 0);
         write_csr!(CSR_HENVCFG, 1 << 63);
@@ -78,16 +78,21 @@ impl ArchCpu {
         info!("CSR_VSATP: {:#x}", value);
         value = read_csr!(CSR_HGATP);
         info!("CSR_HGATP: {:#x}", value);
-        info!("Go to Guest!");
         //unreachable!();
+        0
+    }
+    pub fn run(&mut self) {
         extern "C" {
             fn vcpu_arch_entry();
         }
         unsafe {
             vcpu_arch_entry();
-            //::core::arch::asm!("sret",);
         }
-        0
+    }
+    pub fn idle(&self) {
+        unsafe {
+            core::arch::asm!("wfi");
+        }
     }
 }
 // fn guest_test(id: usize, args: [usize; 3]) -> isize {

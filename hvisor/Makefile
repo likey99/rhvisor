@@ -53,8 +53,10 @@ QEMU_ARGS := -machine virt
 QEMU_ARGS +=-nographic 
 QEMU_ARGS +=-cpu rv64 
 QEMU_ARGS +=-m 3G 
-# QEMU_ARGS +=-bios default
-QEMU_ARGS +=-bios $(BOOTLOADER)
+#rember to change the consts MAX_CPU_NUM
+QEMU_ARGS +=-smp 2
+QEMU_ARGS +=-bios default
+# QEMU_ARGS +=-bios $(BOOTLOADER)
 # QEMU_ARGS +=-kernel ../guests/Image-62 
 # QEMU_ARGS +=-kernel ../guests/bao-linux.bin
 QEMU_ARGS +=-kernel $(KERNEL_BIN)
@@ -94,5 +96,7 @@ monitor:
 dtb:
 	@dtc -I dts -O dtb -o ../guests/linux.dtb ../guests/linux.dts
 	@dtc -I dts -O dtb -o ../guests/linux2.dtb ../guests/linux2.dts
+	@dtc -I dts -O dtb -o ../guests/linux3.dtb ../guests/linux3.dts
+	
 
 .PHONY: build env kernel clean disa run-inner debug monitor dtb
