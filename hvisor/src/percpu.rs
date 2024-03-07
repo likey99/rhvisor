@@ -2,9 +2,9 @@ use core::mem;
 
 use crate::arch::riscv::cpu::ArchCpu;
 use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
-use crate::memory;
 use crate::memory::addr::VirtAddr;
 use crate::zone::Zone;
+use crate::{memory, read_csr, CSR_SIE, CSR_SIP};
 use crate::{ACTIVATED_CPUS, ENTERED_CPUS};
 use alloc::sync::Arc;
 use core::sync::atomic::Ordering;
@@ -44,12 +44,14 @@ impl PerCpu {
         self.arch_cpu.init(self.cpu_on_entry, self.id, dtb);
     }
     pub fn run_vm(&mut self) {
-        info!("prepare CPU{} for vm run!", self.id);
+        println!("prepare CPU{} for vm run!", self.id);
         if self.boot_cpu {
-            info!("boot vm on CPU{}!", self.id);
+            println!("boot vm on CPU{}!", self.id);
             self.arch_cpu.run();
         } else {
             self.arch_cpu.idle();
+            println!("CPU{} weakup!", self.id);
+            self.arch_cpu.run();
         }
     }
 }

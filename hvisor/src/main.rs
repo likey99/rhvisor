@@ -21,6 +21,7 @@ use fdt::Fdt;
 use crate::{
     arch::riscv::{
         cpu,
+        csr::*,
         plic::{self, init_plic},
     },
     consts::{HV_PHY_BASE, MAX_CPU_NUM},
@@ -136,7 +137,7 @@ fn primary_init_early(dtb: usize) -> HvResult {
     for vmid in 0..1 {
         let vm_paddr_start: usize = GUEST.as_ptr() as usize;
         let guest_fdt = unsafe { fdt::Fdt::from_ptr(GUEST_DTB.as_ptr()) }.unwrap();
-        zone_create(vmid, vm_paddr_start, guest_fdt, dtb);
+        zone_create(vmid, vm_paddr_start, guest_fdt, GUEST_DTB.as_ptr() as usize);
     }
     INIT_EARLY_OK.store(1, Ordering::Release);
     Ok(())
@@ -155,20 +156,20 @@ fn per_cpu_init(cpu: &mut PerCpu) {
         memory::hv_page_table().read().activate();
         cpu.zone.clone().unwrap().read().gpm_activate();
     };
-    arch::riscv::trap::init();
     println!("CPU {} init OK.", cpu.id);
 }
-fn wakeup_secondary_cpus(this_id: usize) {
+fn wakeup_secondary_cpus(this_id: usize, dtb: usize) {
     for cpu_id in 0..MAX_CPU_NUM {
         if cpu_id == this_id {
             continue;
         }
-        sbi_rt::hart_start(cpu_id, HV_PHY_BASE, 0);
+        sbi_rt::hart_start(cpu_id, HV_PHY_BASE, dtb);
     }
 }
 /// the rust entry-point of os
 #[no_mangle]
-pub fn rust_main(cpuid: usize, host_dtb: usize) -> ! {
+pub fn rust_main(cpuid: usize, host_dtb: usize) -> () {
+    arch::riscv::trap::init();
     let mut is_primary = false;
     if MASTER_CPU.load(Ordering::Acquire) == -1 {
         MASTER_CPU.store(cpuid as i32, Ordering::Release);
@@ -177,11 +178,10 @@ pub fn rust_main(cpuid: usize, host_dtb: usize) -> ! {
     let cpu = PerCpu::new(cpuid);
     println!("Hello from CPU {},dtb {:#x}!", cpuid, host_dtb);
     if is_primary {
-        wakeup_secondary_cpus(cpuid as usize);
+        wakeup_secondary_cpus(cpuid as usize, host_dtb);
     }
     wait_for(|| ENTERED_CPUS.load(Ordering::Acquire) < MAX_CPU_NUM as _);
     assert_eq!(ENTERED_CPUS.load(Ordering::Acquire), MAX_CPU_NUM as _);
-
     println!(
         "{} CPU {} entered.",
         if is_primary { "Primary" } else { "Secondary" },
@@ -193,7 +193,6 @@ pub fn rust_main(cpuid: usize, host_dtb: usize) -> ! {
     } else {
         wait_for_counter(&INIT_EARLY_OK, 1).unwrap();
     }
-
     per_cpu_init(cpu);
 
     INITED_CPUS.fetch_add(1, Ordering::SeqCst);
@@ -205,6 +204,7 @@ pub fn rust_main(cpuid: usize, host_dtb: usize) -> ! {
     } else {
         wait_for_counter(&INIT_LATE_OK, 1);
     }
+    let sie = read_csr!(CSR_SIE);
+    println!("CPU{} sie: {:#x}", cpuid, sie);
     cpu.run_vm();
-    arch::riscv::sbi::shutdown(false);
 }

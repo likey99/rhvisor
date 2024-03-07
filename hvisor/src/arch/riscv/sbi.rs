@@ -9,6 +9,7 @@ use riscv::register::{hvip, sie};
 pub mod SBI_EID {
     pub const SET_TIMER: usize = 0x54494D45;
     pub const EXTID_HSM: usize = 0x48534D;
+    pub const SEND_IPI: usize = 0x735049;
 }
 pub const SBI_SUCCESS: i64 = 0;
 pub const SBI_ERR_FAILURE: i64 = -1;
@@ -59,6 +60,23 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
         SBI_EID::SET_TIMER => sbi_ret = sbi_time_handler(current_cpu.x[10], fid),
         SBI_EID::EXTID_HSM => {
             sbi_ret = sbi_hsm_handler(fid, current_cpu);
+        }
+        SBI_EID::SEND_IPI => {
+            // sbi_rt::send_ipi(1 << current_cpu.x[10], 0);
+            let ret = sbi_rt::send_ipi(current_cpu.x[10], current_cpu.x[11]);
+            sbi_ret = SbiRet {
+                error: ret.error as i64,
+                value: ret.value as i64,
+            };
+            // sbi_ret = sbi_call_5(
+            //     eid,
+            //     fid,
+            //     current_cpu.x[10],
+            //     current_cpu.x[11],
+            //     current_cpu.x[12],
+            //     current_cpu.x[13],
+            //     current_cpu.x[14],
+            // );
         }
         //_ => sbi_ret = sbi_dummy_handler(),
         _ => {
@@ -154,12 +172,12 @@ pub fn sbi_hsm_start_handler(current_cpu: &mut ArchCpu) -> SbiRet {
         target_cpu.cpu_on_entry = start_addr;
         target_cpu.arch_cpu.sepc = start_addr;
         target_cpu.arch_cpu.x[11] = opaque;
-        debug!(
+        warn!(
             "@CPU{} hartid: {:#x}, start_addr: {:#x}, opaque: {:#x}",
             current_cpu.hartid, hartid, start_addr, opaque
         );
-        let _ret = sbi_rt::send_ipi(0b1, 0);
-        debug!(
+        let _ret = sbi_rt::send_ipi(1 << hartid, 0);
+        warn!(
             "send ipi to CPU{} ret: {} {}",
             hartid, _ret.error, _ret.value
         );

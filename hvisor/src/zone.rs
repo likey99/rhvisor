@@ -210,10 +210,10 @@ pub fn zone_create(
             let cpu_data = get_cpu_data(cpuid);
             cpu_data.zone = Some(new_zone_pointer.clone());
             //chose boot cpu
-            if cpuid == 1 {
+            if cpuid == 0 {
                 cpu_data.boot_cpu = true;
-                cpu_data.cpu_on_entry = guest_entry;
             }
+            cpu_data.cpu_on_entry = guest_entry;
         }
     }
 

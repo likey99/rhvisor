@@ -175,11 +175,12 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
             trace!("sie {:#x}", read_csr!(CSR_SIE));
         }
         InterruptType::SSI => {
-            panic!("SSI");
+            trace!("SSI on CPU {}", current_cpu.hartid);
+            handle_ssi(current_cpu);
         }
         InterruptType::SEI => {
             info!("SEI");
-            handle_irq(current_cpu)
+            handle_eirq(current_cpu)
         }
         _ => {
             error!(
@@ -192,7 +193,7 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
 }
 
 /// handle interrupt request(current only external interrupt)
-pub fn handle_irq(current_cpu: &mut ArchCpu) {
+pub fn handle_eirq(current_cpu: &mut ArchCpu) {
     // TODO: handle other irq
     // check external interrupt && handle
     // sifive plic: context0=>cpu0,M mode,context1=>cpu0,S mode...
@@ -208,4 +209,12 @@ pub fn handle_irq(current_cpu: &mut ArchCpu) {
     host_plic.write().claim_complete[context_id] = irq;
     // set external interrupt pending, which trigger guest interrupt
     unsafe { hvip::set_vseip() };
+}
+pub fn handle_ssi(current_cpu: &mut ArchCpu) {
+    let sip = read_csr!(CSR_SIP);
+    trace!("sip: {:#x}", sip);
+    write_csr!(CSR_SIP, sip & (!1 << 1));
+    let hvip = read_csr!(CSR_HVIP);
+    trace!("hvip: {:#x}", hvip);
+    write_csr!(CSR_HVIP, hvip | 1 << 2);
 }

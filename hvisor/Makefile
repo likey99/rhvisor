@@ -55,8 +55,8 @@ QEMU_ARGS +=-cpu rv64
 QEMU_ARGS +=-m 3G 
 #rember to change the consts MAX_CPU_NUM
 QEMU_ARGS +=-smp 2
-QEMU_ARGS +=-bios default
-# QEMU_ARGS +=-bios $(BOOTLOADER)
+# QEMU_ARGS +=-bios default
+QEMU_ARGS +=-bios $(BOOTLOADER)
 # QEMU_ARGS +=-kernel ../guests/Image-62 
 # QEMU_ARGS +=-kernel ../guests/bao-linux.bin
 QEMU_ARGS +=-kernel $(KERNEL_BIN)
