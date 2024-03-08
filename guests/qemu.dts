@@ -20,8 +20,7 @@
 	};
 
 	chosen {
-		bootargs = "root=/dev/vda rw earlycon console=ttyS0";
-		stdout-path = "/soc/serial@10000000";
+		bootargs = "root=/dev/vda rw earlycon console=hvc0";
 	};
 
 	poweroff {
@@ -62,7 +61,7 @@
 			reg = <0x00>;
 			status = "okay";
 			compatible = "riscv";
-			riscv,isa = "rv64imafdch_zicsr_zifencei_zihintpause_zba_zbb_zbc_zbs_sstc";
+			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv39";
 
 			interrupt-controller {
@@ -79,7 +78,7 @@
 			reg = <0x01>;
 			status = "okay";
 			compatible = "riscv";
-			riscv,isa = "rv64imafdch_zicsr_zifencei_zihintpause_zba_zbb_zbc_zbs_sstc";
+			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv39";
 
 			interrupt-controller {
@@ -96,7 +95,7 @@
 			reg = <0x02>;
 			status = "okay";
 			compatible = "riscv";
-			riscv,isa = "rv64imafdch_zicsr_zifencei_zihintpause_zba_zbb_zbc_zbs_sstc";
+			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv39";
 
 			interrupt-controller {
@@ -113,7 +112,7 @@
 			reg = <0x03>;
 			status = "okay";
 			compatible = "riscv";
-			riscv,isa = "rv64imafdch_zicsr_zifencei_zihintpause_zba_zbb_zbc_zbs_sstc";
+			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv39";
 
 			interrupt-controller {

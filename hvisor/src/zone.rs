@@ -183,6 +183,97 @@ impl Zone {
                 ))?;
             }
         }
+
+        //old
+        for node in fdt.find_all_nodes("/virtio_mmio") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map virtio mmio addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        // probe virt test
+        for node in fdt.find_all_nodes("/test") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap() + 0x1000;
+                debug!("map test addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
+                ))?;
+            }
+        }
+
+        // probe uart device
+        for node in fdt.find_all_nodes("/uart") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = align_up(reg.size.unwrap());
+                debug!("map uart addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        // probe clint(core local interrupter)
+        for node in fdt.find_all_nodes("/clint") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map clint addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
+
+        // probe plic
+        //TODO: remove plic map from vm
+        // for node in fdt.find_all_nodes("/soc/plic") {
+        //     if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+        //         let paddr = reg.starting_address as HostPhysAddr;
+        //         //let size = reg.size.unwrap();
+        //         let size = PLIC_GLOBAL_SIZE; //
+        //         debug!("map plic addr: {:#x}, size: {:#x}", paddr, size);
+        //         self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+        //             paddr as GuestPhysAddr,
+        //             paddr,
+        //             size,
+        //             MemFlags::READ | MemFlags::WRITE,
+        //         ))?;
+        //     }
+        // }
+
+        for node in fdt.find_all_nodes("/pci") {
+            if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
+                let paddr = reg.starting_address as HostPhysAddr;
+                let size = reg.size.unwrap();
+                debug!("map pci addr: {:#x}, size: {:#x}", paddr, size);
+                self.gpm.insert(MemoryRegion::new_with_offset_mapper(
+                    paddr as GuestPhysAddr,
+                    paddr,
+                    size,
+                    MemFlags::READ | MemFlags::WRITE,
+                ))?;
+            }
+        }
         debug!("VM stage 2 memory set: {:#x?}", self.gpm);
         Ok(())
     }
@@ -210,7 +301,7 @@ pub fn zone_create(
             let cpu_data = get_cpu_data(cpuid);
             cpu_data.zone = Some(new_zone_pointer.clone());
             //chose boot cpu
-            if cpuid == 1 {
+            if cpuid == 0 {
                 cpu_data.boot_cpu = true;
             }
             cpu_data.cpu_on_entry = guest_entry;
