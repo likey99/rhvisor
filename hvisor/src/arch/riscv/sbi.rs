@@ -57,26 +57,32 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
 
     match eid {
         //SBI_EXTID_BASE => sbi_ret = sbi_base_handler(fid, current_cpu),
-        SBI_EID::SET_TIMER => sbi_ret = sbi_time_handler(current_cpu.x[10], fid),
+        SBI_EID::SET_TIMER => {
+            //debug!("SBI_EID::SET_TIMER on CPU {}", current_cpu.hartid);
+            sbi_ret = sbi_time_handler(current_cpu.x[10], fid);
+        }
         SBI_EID::EXTID_HSM => {
             sbi_ret = sbi_hsm_handler(fid, current_cpu);
         }
         SBI_EID::SEND_IPI => {
-            // sbi_rt::send_ipi(1 << current_cpu.x[10], 0);
-            let ret = sbi_rt::send_ipi(current_cpu.x[10], current_cpu.x[11]);
-            sbi_ret = SbiRet {
-                error: ret.error as i64,
-                value: ret.value as i64,
-            };
-            // sbi_ret = sbi_call_5(
-            //     eid,
-            //     fid,
-            //     current_cpu.x[10],
-            //     current_cpu.x[11],
-            //     current_cpu.x[12],
-            //     current_cpu.x[13],
-            //     current_cpu.x[14],
-            // );
+            debug!(
+                "SBI_EID::SEND_IPI,hartid:{:#x},mask:{:#x}",
+                current_cpu.x[10], current_cpu.x[11]
+            );
+            // let ret = sbi_rt::send_ipi(current_cpu.x[10], current_cpu.x[11]);
+            // sbi_ret = SbiRet {
+            //     error: ret.error as i64,
+            //     value: ret.value as i64,
+            // };
+            sbi_ret = sbi_call_5(
+                eid,
+                fid,
+                current_cpu.x[10],
+                current_cpu.x[11],
+                current_cpu.x[12],
+                current_cpu.x[13],
+                current_cpu.x[14],
+            );
         }
         //_ => sbi_ret = sbi_dummy_handler(),
         _ => {
@@ -129,6 +135,7 @@ pub fn sbi_time_handler(stime: usize, fid: usize) -> SbiRet {
         error: SBI_SUCCESS,
         value: 0,
     };
+    //debug!("SBI_SET_TIMER stime: {:#x}", stime);
     set_timer(stime);
     unsafe {
         // clear guest timer interrupt pending

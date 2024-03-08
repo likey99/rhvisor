@@ -45,18 +45,18 @@ impl ArchCpu {
         // write_csr!(CSR_SSTATUS, self.sstatus);
         // write_csr!(CSR_HSTATUS, self.hstatus);
         // write_csr!(CSR_SEPC, self.sepc);
-        write_csr!(CSR_HIDELEG, 1 << 2 | 1 << 6 | 1 << 10); //HIDELEG_VSSI | HIDELEG_VSTI | HIDELEG_VSEI
-        write_csr!(CSR_HEDELEG, 1 << 8 | 1 << 12 | 1 << 13 | 1 << 15); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
-        write_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
-                                            //In VU-mode, a counter is not readable unless the applicable bits are set in both hcounteren and scounteren.
-        write_csr!(CSR_SCOUNTEREN, 1 << 1);
+        set_csr!(CSR_HIDELEG, 1 << 2 | 1 << 6 | 1 << 10); //HIDELEG_VSSI | HIDELEG_VSTI | HIDELEG_VSEI
+        set_csr!(CSR_HEDELEG, 1 << 8 | 1 << 12 | 1 << 13 | 1 << 15); //HEDELEG_ECU | HEDELEG_IPF | HEDELEG_LPF | HEDELEG_SPF
+        set_csr!(CSR_HCOUNTEREN, 1 << 1); //HCOUNTEREN_TM
+                                          //In VU-mode, a counter is not readable unless the applicable bits are set in both hcounteren and scounteren.
+        set_csr!(CSR_SCOUNTEREN, 1 << 1);
         write_csr!(CSR_HTIMEDELTA, 0);
-        write_csr!(CSR_HENVCFG, 1 << 63);
+        set_csr!(CSR_HENVCFG, 1 << 63);
         //write_csr!(CSR_VSSTATUS, 1 << 63 | 3 << 13 | 3 << 15); //SSTATUS_SD | SSTATUS_FS_DIRTY | SSTATUS_XS_DIRTY
 
         // enable all interupts
-        write_csr!(CSR_SIE, 1 << 9 | 1 << 5 | 1 << 1); //SEIE STIE SSIE
-                                                       // write_csr!(CSR_HIE, 1 << 12 | 1 << 10 | 1 << 6 | 1 << 2); //SGEIE VSEIE VSTIE VSSIE
+        set_csr!(CSR_SIE, 1 << 9 | 1 << 5 | 1 << 1); //SEIE STIE SSIE
+                                                     // write_csr!(CSR_HIE, 1 << 12 | 1 << 10 | 1 << 6 | 1 << 2); //SGEIE VSEIE VSTIE VSSIE
         write_csr!(CSR_HIE, 0);
         write_csr!(CSR_VSTVEC, 0);
         write_csr!(CSR_VSSCRATCH, 0);
@@ -89,6 +89,10 @@ impl ArchCpu {
         unsafe {
             core::arch::asm!("wfi");
         }
+        println!("CPU{} weakup!", self.hartid);
+        debug!("sip: {:#x}", read_csr!(CSR_SIP));
+        clear_csr!(CSR_SIP, 1 << 1);
+        debug!("sip*: {:#x}", read_csr!(CSR_SIP));
     }
 }
 // fn guest_test(id: usize, args: [usize; 3]) -> isize {

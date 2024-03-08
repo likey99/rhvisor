@@ -38,6 +38,7 @@
 				compatible = "riscv,cpu-intc";
 			};
 		};
+
 	};
 
 	memory@90000000 {

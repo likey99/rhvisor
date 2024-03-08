@@ -166,7 +166,7 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     trace!("CSR_SCAUSE: {:#x}", trap_code);
     match trap_code & 0xfff {
         InterruptType::STI => {
-            trace!("STI");
+            trace!("STI on CPU{}", current_cpu.hartid);
             unsafe {
                 hvip::set_vstip();
                 sie::clear_stimer();
@@ -175,11 +175,11 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
             trace!("sie {:#x}", read_csr!(CSR_SIE));
         }
         InterruptType::SSI => {
-            trace!("SSI on CPU {}", current_cpu.hartid);
+            debug!("SSI on CPU {}", current_cpu.hartid);
             handle_ssi(current_cpu);
         }
         InterruptType::SEI => {
-            info!("SEI");
+            info!("SEI on CPU {}", current_cpu.hartid);
             handle_eirq(current_cpu)
         }
         _ => {
@@ -212,9 +212,14 @@ pub fn handle_eirq(current_cpu: &mut ArchCpu) {
 }
 pub fn handle_ssi(current_cpu: &mut ArchCpu) {
     let sip = read_csr!(CSR_SIP);
-    trace!("sip: {:#x}", sip);
-    write_csr!(CSR_SIP, sip & (!1 << 1));
-    let hvip = read_csr!(CSR_HVIP);
-    trace!("hvip: {:#x}", hvip);
-    write_csr!(CSR_HVIP, hvip | 1 << 2);
+    debug!("CPU{} sip: {:#x}", current_cpu.hartid, sip);
+    clear_csr!(CSR_SIP, 1 << 1);
+    let sip2 = read_csr!(CSR_SIP);
+    debug!("CPU{} sip*: {:#x}", current_cpu.hartid, sip2);
+    if sip & !(1 << 1) != sip2 {
+        error!("CPU{} clear sip fail", current_cpu.hartid);
+    }
+
+    debug!("hvip: {:#x}", read_csr!(CSR_HVIP));
+    set_csr!(CSR_HVIP, 1 << 2);
 }

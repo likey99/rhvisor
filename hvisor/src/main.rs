@@ -51,8 +51,8 @@ mod plat;
 mod zone;
 #[link_section = ".dtb"]
 /// the guest dtb file
-pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
-    *include_bytes!("../../guests/linux3.dtb");
+pub static GUEST_DTB: [u8; include_bytes!("../../guests/qemu.dtb").len()] =
+    *include_bytes!("../../guests/qemu.dtb");
 #[link_section = ".initrd"]
 static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
     *include_bytes!("../../guests/Image-62");

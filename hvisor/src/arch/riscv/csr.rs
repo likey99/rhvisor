@@ -70,3 +70,29 @@ macro_rules! write_csr {
     };
 }
 pub(crate) use write_csr;
+
+macro_rules! clear_csr {
+    ($csr_number:expr, $value: expr) => {
+        unsafe{
+            let v: usize = $value;
+            ::core::arch::asm!(
+                "csrc {csr}, {value}",
+                value = in(reg) v,
+                csr = const $csr_number,
+                options(nomem, nostack),)}
+    };
+}
+pub(crate) use clear_csr;
+
+macro_rules! set_csr {
+    ($csr_number:expr, $value: expr) => {
+        unsafe{
+            let v: usize = $value;
+            ::core::arch::asm!(
+                "csrs {csr}, {value}",
+                value = in(reg) v,
+                csr = const $csr_number,
+                options(nomem, nostack),)}
+    };
+}
+pub(crate) use set_csr;

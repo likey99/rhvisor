@@ -4,6 +4,46 @@ use crate::{cpu::ArchCpu, memory::GuestPhysAddr};
 use riscv::register::{hvip, sie};
 use riscv_decode::Instruction;
 use spin::{Once, RwLock};
+// PLIC Memory Map
+//  base + 0x000000: Reserved (interrupt source 0 does not exist)
+//  base + 0x000004: Interrupt source 1 priority
+//  base + 0x000008: Interrupt source 2 priority
+//  ...
+//  base + 0x000FFC: Interrupt source 1023 priority
+//  base + 0x001000: Interrupt Pending bit 0-31
+//  base + 0x00107C: Interrupt Pending bit 992-1023
+//  ...
+//  base + 0x002000: Enable bits for sources 0-31 on context 0
+//  base + 0x002004: Enable bits for sources 32-63 on context 0
+//  ...
+//  base + 0x00207C: Enable bits for sources 992-1023 on context 0
+//  base + 0x002080: Enable bits for sources 0-31 on context 1
+//  base + 0x002084: Enable bits for sources 32-63 on context 1
+//  ...
+//  base + 0x0020FC: Enable bits for sources 992-1023 on context 1
+//  base + 0x002100: Enable bits for sources 0-31 on context 2
+//  base + 0x002104: Enable bits for sources 32-63 on context 2
+//  ...
+//  base + 0x00217C: Enable bits for sources 992-1023 on context 2
+//  ...
+//  base + 0x1F1F80: Enable bits for sources 0-31 on context 15871
+//  base + 0x1F1F84: Enable bits for sources 32-63 on context 15871
+//  base + 0x1F1FFC: Enable bits for sources 992-1023 on context 15871
+//  ...
+//  base + 0x1FFFFC: Reserved
+//  base + 0x200000: Priority threshold for context 0
+//  base + 0x200004: Claim/complete for context 0
+//  base + 0x200008: Reserved
+//  ...
+//  base + 0x200FFC: Reserved
+//  base + 0x201000: Priority threshold for context 1
+//  base + 0x201004: Claim/complete for context 1
+//  ...
+//  base + 0x3FFF000: Priority threshold for context 15871
+//  base + 0x3FFF004: Claim/complete for context 15871
+//  base + 0x3FFF008: Reserved
+//  ...
+//  base + 0x3FFFFFC: Reserved
 /// Plic used for Hypervisor.
 pub static PLIC: Once<RwLock<Plic>> = Once::new();
 
@@ -45,7 +85,10 @@ pub fn vplic_global_emul_handler(
                 //TODO:check irq id for vm
                 let irq_id = offset / 4;
                 let value = current_cpu.x[i.rs2() as usize] as u32;
-                debug!("PLIC write addr@{:#x} -> {:#x}", addr, value);
+                info!(
+                    "PLIC set priority write addr@{:#x} irq id {} valuse{:#x}",
+                    addr, irq_id, value
+                );
                 unsafe {
                     core::ptr::write_volatile(addr as *mut u32, value);
                 }
@@ -58,7 +101,12 @@ pub fn vplic_global_emul_handler(
             Instruction::Lw(i) => {
                 // guest read
                 let value = unsafe { core::ptr::read_volatile(addr as *const u32) };
-                debug!("PLIC read addr@{:#x} -> {:#x}", addr, value);
+                let context = (offset - 0x002000) / 0x80;
+                let irq_id = (offset - 0x002000) % 0x80;
+                info!(
+                    "PLIC set enable read addr@{:#x} -> context {}  irq {}  value {:#x}",
+                    addr, context, irq_id, value
+                );
                 current_cpu.x[i.rd() as usize] = value as usize;
             }
             Instruction::Sw(i) => {
@@ -66,7 +114,10 @@ pub fn vplic_global_emul_handler(
                 let context = (offset - 0x002000) / 0x80;
                 let irq_id = (offset - 0x002000) % 0x80;
                 let value = current_cpu.x[i.rs2() as usize] as u32;
-                debug!("PLIC write addr@{:#x} -> {:#x}", addr, value);
+                info!(
+                    "PLIC set enable write addr@{:#x} -> context {} irq {} value {:#x}",
+                    addr, context, irq_id, value
+                );
                 unsafe {
                     core::ptr::write_volatile(addr as *mut u32, value);
                 }
@@ -89,7 +140,7 @@ pub fn vplic_hart_emul_handler(current_cpu: &mut ArchCpu, addr: GuestPhysAddr, i
                 Instruction::Sw(i) => {
                     // guest write threshold register to plic core
                     let value = current_cpu.x[i.rs2() as usize] as u32;
-                    debug!("PLIC write addr@{:#x} -> {:#x}", addr, value);
+                    debug!("PLIC set threshold write addr@{:#x} -> {:#x}", addr, value);
                     // todo: guest pa -> host pa
                     // htracking!(
                     //     "write PLIC threshold reg, addr: {:#x}, value: {:#x}",
@@ -109,7 +160,7 @@ pub fn vplic_hart_emul_handler(current_cpu: &mut ArchCpu, addr: GuestPhysAddr, i
                 Instruction::Lw(i) => {
                     // guest read claim from plic core
                     debug!(
-                        "PLIC read addr@{:#x} -> {:#x}",
+                        "PLIC claim read addr@{:#x} -> {:#x}",
                         addr,
                         host_plic.read().claim_complete[context]
                     );
@@ -119,7 +170,7 @@ pub fn vplic_hart_emul_handler(current_cpu: &mut ArchCpu, addr: GuestPhysAddr, i
                 Instruction::Sw(i) => {
                     // guest write complete to plic core
                     let value = current_cpu.x[i.rs2() as usize] as u32;
-                    debug!("Write plic addr@:{:#x} -> {:#x}", addr, value);
+                    debug!("PLIC complete write addr@:{:#x} -> {:#x}", addr, value);
                     // todo: guest pa -> host pa
                     unsafe {
                         core::ptr::write_volatile(addr as *mut u32, value);

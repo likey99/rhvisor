@@ -94,7 +94,7 @@ impl Zone {
             MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
         ))?;
         // probe virtio mmio device
-        for node in fdt.find_all_nodes("/virtio_mmio") {
+        for node in fdt.find_all_nodes("/soc/virtio_mmio") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = reg.size.unwrap();
@@ -109,7 +109,7 @@ impl Zone {
         }
 
         // probe virt test
-        for node in fdt.find_all_nodes("/test") {
+        for node in fdt.find_all_nodes("/soc/test") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = reg.size.unwrap() + 0x1000;
@@ -124,7 +124,7 @@ impl Zone {
         }
 
         // probe uart device
-        for node in fdt.find_all_nodes("/uart") {
+        for node in fdt.find_all_nodes("/soc/uart") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = align_up(reg.size.unwrap());
@@ -139,7 +139,7 @@ impl Zone {
         }
 
         // probe clint(core local interrupter)
-        for node in fdt.find_all_nodes("/clint") {
+        for node in fdt.find_all_nodes("/soc/clint") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = reg.size.unwrap();
@@ -170,7 +170,7 @@ impl Zone {
         //     }
         // }
 
-        for node in fdt.find_all_nodes("/pci") {
+        for node in fdt.find_all_nodes("/soc/pci") {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = reg.size.unwrap();
@@ -210,7 +210,7 @@ pub fn zone_create(
             let cpu_data = get_cpu_data(cpuid);
             cpu_data.zone = Some(new_zone_pointer.clone());
             //chose boot cpu
-            if cpuid == 0 {
+            if cpuid == 1 {
                 cpu_data.boot_cpu = true;
             }
             cpu_data.cpu_on_entry = guest_entry;

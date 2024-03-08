@@ -50,7 +50,7 @@ impl PerCpu {
             self.arch_cpu.run();
         } else {
             self.arch_cpu.idle();
-            println!("CPU{} weakup!", self.id);
+
             self.arch_cpu.run();
         }
     }
