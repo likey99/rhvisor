@@ -24,6 +24,7 @@ use crate::{
         csr::*,
         plic::{self, init_plic},
     },
+    config::DTB_ADDR,
     consts::{HV_PHY_BASE, MAX_CPU_NUM},
     error::HvResult,
     memory::frame::Frame,
@@ -42,6 +43,7 @@ mod error;
 #[macro_use]
 mod console;
 mod arch;
+mod config;
 mod consts;
 mod lang_items;
 mod logging;
@@ -49,13 +51,13 @@ mod memory;
 mod percpu;
 mod plat;
 mod zone;
-#[link_section = ".dtb"]
-/// the guest dtb file
-pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
-    *include_bytes!("../../guests/linux3.dtb");
-#[link_section = ".initrd"]
-static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
-    *include_bytes!("../../guests/Image-62");
+// #[link_section = ".dtb"]
+// /// the guest dtb file
+// pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
+//     *include_bytes!("../../guests/linux3.dtb");
+// #[link_section = ".initrd"]
+// static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
+//     *include_bytes!("../../guests/Image-62");
 // #[link_section = ".dtb"]
 // /// the guest dtb file
 // pub static GUEST_DTB: [u8; include_bytes!("../../guests/rCore-Tutorial-v3/rCore-Tutorial-v3.dtb")
@@ -63,9 +65,13 @@ static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
 // #[link_section = ".initrd"]
 // static GUEST: [u8; include_bytes!("../../guests/rCore-Tutorial-v3/rCore-Tutorial-v3.bin").len()] =
 //     *include_bytes!("../../guests/rCore-Tutorial-v3/rCore-Tutorial-v3.bin");
-// #[link_section = ".initrd"]
-// static GUEST: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
-//     *include_bytes!("../../guests/os_ch5_802.bin");
+#[link_section = ".dtb"]
+/// the guest dtb file
+pub static GUEST_DTB: [u8; include_bytes!("../../guests/os_ch5.dtb").len()] =
+    *include_bytes!("../../guests/os_ch5.dtb");
+#[link_section = ".initrd"]
+static GUEST: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
+    *include_bytes!("../../guests/os_ch5_802.bin");
 
 /// clear BSS segment
 pub fn clear_bss() {
@@ -137,7 +143,7 @@ fn primary_init_early(dtb: usize) -> HvResult {
     for vmid in 0..1 {
         let vm_paddr_start: usize = GUEST.as_ptr() as usize;
         let guest_fdt = unsafe { fdt::Fdt::from_ptr(GUEST_DTB.as_ptr()) }.unwrap();
-        zone_create(vmid, vm_paddr_start, guest_fdt, GUEST_DTB.as_ptr() as usize);
+        zone_create(vmid, vm_paddr_start, guest_fdt, DTB_ADDR);
     }
     INIT_EARLY_OK.store(1, Ordering::Release);
     Ok(())
@@ -197,7 +203,7 @@ pub fn rust_main(cpuid: usize, host_dtb: usize) -> () {
 
     INITED_CPUS.fetch_add(1, Ordering::SeqCst);
     wait_for_counter(&INITED_CPUS, MAX_CPU_NUM as _);
-    cpu.cpu_init(GUEST_DTB.as_ptr() as usize);
+    cpu.cpu_init(DTB_ADDR);
 
     if is_primary {
         primary_init_late();

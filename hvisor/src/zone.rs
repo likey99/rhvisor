@@ -86,6 +86,7 @@ impl Zone {
             MemFlags::READ | MemFlags::WRITE | MemFlags::EXECUTE,
         ))?;
         // map guest dtb
+        debug!("map guest dtb: {:#x}", dtb_addr);
         let guest_dtb = GUEST_DTB.as_ptr() as usize;
         self.gpm.insert(MemoryRegion::new_with_offset_mapper(
             dtb_addr as GuestPhysAddr,
