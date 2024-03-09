@@ -82,7 +82,7 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
             let inst = riscv_decode::decode(raw_inst);
             warn!("trap ins: {:#x}  {:?}", raw_inst, inst);
             current_cpu.sepc += 4;
-            //panic!("unhandled trap");
+            panic!("unhandled trap");
         }
     }
 }

@@ -24,18 +24,53 @@
 			};
 		};
 
+		cpu@1 {
+			device_type = "cpu";
+			reg = <0x1>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imafdcsu";
+			mmu-type = "riscv,sv39";
+
+			cpu1_intc: interrupt-controller {
+				#interrupt-cells = <0x1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+			};
+		};
+		cpu@2 {
+			device_type = "cpu";
+			reg = <0x2>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imafdcsu";
+			mmu-type = "riscv,sv39";
+
+			cpu2_intc: interrupt-controller {
+				#interrupt-cells = <0x1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+			};
+		};
+
 	};
 
 	memory@90000000 {
 		device_type = "memory";
 		reg = <0x0 0x90000000 0x0 0x10000000>;
 	};
-
+soc{
+			#address-cells = <0x02>;
+		#size-cells = <0x02>;
+		compatible = "simple-bus";
+		ranges;
 	plic: interrupt-controller@c000000 {
 		riscv,ndev = <60>;
 		reg = <0x0 0xc000000 0x0 0x4000000>;
 		interrupts-extended = <
 			&cpu0_intc 11 &cpu0_intc 9 
+			&cpu1_intc 11 &cpu1_intc 9 
+			&cpu2_intc 11 &cpu2_intc 9
 		>;
 		interrupt-controller;
 		compatible = "riscv,plic0";
@@ -105,9 +140,9 @@
 		reg = <0x0 0x10001000 0x0 0x1000>;
 		compatible = "virtio,mmio";
 	};
-
+};
 	chosen {
-		bootargs = "root=/dev/vda rw earlycon console=hvc0";
+		bootargs = "root=/dev/vda rw earlycon console=ttyS0";
 	};
 
 };
