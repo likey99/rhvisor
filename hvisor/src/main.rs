@@ -24,7 +24,7 @@ use crate::{
         csr::*,
         plic::{self, init_plic},
     },
-    config::DTB_ADDR,
+    config::*,
     consts::{HV_PHY_BASE, MAX_CPU_NUM},
     error::HvResult,
     memory::frame::Frame,
@@ -51,28 +51,6 @@ mod memory;
 mod percpu;
 mod plat;
 mod zone;
-// #[link_section = ".dtb"]
-// /// the guest dtb file
-// pub static GUEST_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
-//     *include_bytes!("../../guests/linux3.dtb");
-// #[link_section = ".initrd"]
-// static GUEST: [u8; include_bytes!("../../guests/Image-62").len()] =
-//     *include_bytes!("../../guests/Image-62");
-// #[link_section = ".dtb"]
-// /// the guest dtb file
-// pub static GUEST_DTB: [u8; include_bytes!("../../guests/rCore-Tutorial-v3/rCore-Tutorial-v3.dtb")
-//     .len()] = *include_bytes!("../../guests/rCore-Tutorial-v3/rCore-Tutorial-v3.dtb");
-// #[link_section = ".initrd"]
-// static GUEST: [u8; include_bytes!("../../guests/rCore-Tutorial-v3/rCore-Tutorial-v3.bin").len()] =
-//     *include_bytes!("../../guests/rCore-Tutorial-v3/rCore-Tutorial-v3.bin");
-#[link_section = ".dtb"]
-/// the guest dtb file
-pub static GUEST_DTB: [u8; include_bytes!("../../guests/os_ch5.dtb").len()] =
-    *include_bytes!("../../guests/os_ch5.dtb");
-#[link_section = ".initrd"]
-static GUEST: [u8; include_bytes!("../../guests/os_ch5_802.bin").len()] =
-    *include_bytes!("../../guests/os_ch5_802.bin");
-
 /// clear BSS segment
 pub fn clear_bss() {
     extern "C" {
@@ -127,7 +105,7 @@ fn primary_init_early(dtb: usize) -> HvResult {
     memory::heap::heap_test();
     memory::init_frame_allocator();
     memory::frame::frame_allocator_test();
-    debug!("host dtb: {:#x}", dtb);
+    info!("host dtb: {:#x}", dtb);
     let host_fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
     memory::init_hv_page_table(host_fdt).unwrap();
     let plic_info = host_fdt.find_node("/soc/plic").unwrap();
@@ -135,16 +113,17 @@ fn primary_init_early(dtb: usize) -> HvResult {
         plic_info.reg().unwrap().next().unwrap().starting_address as usize,
         plic_info.reg().unwrap().next().unwrap().size.unwrap(),
     );
-    debug!(
-        "guest entry: {:#x}, guest size: {:#x}",
-        GUEST.as_ptr() as usize,
-        GUEST.len()
-    );
-    for vmid in 0..1 {
-        let vm_paddr_start: usize = GUEST.as_ptr() as usize;
-        let guest_fdt = unsafe { fdt::Fdt::from_ptr(GUEST_DTB.as_ptr()) }.unwrap();
-        zone_create(vmid, vm_paddr_start, guest_fdt, DTB_ADDR);
+    for vmid in 0..GUESTS.len() {
+        info!(
+            "guest{} addr: {:#x}, dtb addr: {:#x}",
+            vmid,
+            GUESTS[vmid].0.as_ptr() as usize,
+            GUESTS[vmid].1.as_ptr() as usize
+        );
+        let vm_paddr_start: usize = GUESTS[vmid].0.as_ptr() as usize;
+        zone_create(vmid, vm_paddr_start, GUESTS[vmid].1.as_ptr(), DTB_ADDR);
     }
+
     INIT_EARLY_OK.store(1, Ordering::Release);
     Ok(())
 }
@@ -156,12 +135,14 @@ fn primary_init_late() {
 
 fn per_cpu_init(cpu: &mut PerCpu) {
     if cpu.zone.is_none() {
-        panic!("zone is not created for cpu {}", cpu.id);
+        warn!("zone is not created for cpu {}", cpu.id);
+    } else {
+        unsafe {
+            memory::hv_page_table().read().activate();
+            cpu.zone.clone().unwrap().read().gpm_activate();
+        };
     }
-    unsafe {
-        memory::hv_page_table().read().activate();
-        cpu.zone.clone().unwrap().read().gpm_activate();
-    };
+
     println!("CPU {} init OK.", cpu.id);
 }
 fn wakeup_secondary_cpus(this_id: usize, dtb: usize) {

@@ -69,7 +69,7 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
             guest_page_fault_handler(current_cpu);
         }
         ExceptionType::STORE_GUEST_PAGE_FAULT => {
-            info!("STORE_GUEST_PAGE_FAULT");
+            debug!("STORE_GUEST_PAGE_FAULT");
             guest_page_fault_handler(current_cpu);
         }
         _ => {
@@ -83,6 +83,7 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
             warn!("trap ins: {:#x}  {:?}", raw_inst, inst);
             current_cpu.sepc += 4;
             panic!("unhandled trap");
+            current_cpu.idle();
         }
     }
 }
@@ -179,7 +180,7 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
             handle_ssi(current_cpu);
         }
         InterruptType::SEI => {
-            info!("SEI on CPU {}", current_cpu.hartid);
+            debug!("SEI on CPU {}", current_cpu.hartid);
             handle_eirq(current_cpu)
         }
         _ => {
@@ -216,9 +217,6 @@ pub fn handle_ssi(current_cpu: &mut ArchCpu) {
     clear_csr!(CSR_SIP, 1 << 1);
     let sip2 = read_csr!(CSR_SIP);
     debug!("CPU{} sip*: {:#x}", current_cpu.hartid, sip2);
-    if sip & !(1 << 1) != sip2 {
-        error!("CPU{} clear sip fail", current_cpu.hartid);
-    }
 
     debug!("hvip: {:#x}", read_csr!(CSR_HVIP));
     set_csr!(CSR_HVIP, 1 << 2);

@@ -53,6 +53,10 @@ SECTIONS
     .dtb : {
         *(.dtb)
     }
+    . = ALIGN(4K);
+    .rcore : {
+        *(.rcore)
+    }
     . = 0x90000000;
     vmimg = .;
     .initrd : {
