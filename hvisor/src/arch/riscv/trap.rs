@@ -1,13 +1,12 @@
 use super::cpu::ArchCpu;
 use super::plic::PLIC;
 use super::sbi::sbi_vs_handler;
-use crate::arch::riscv::plic::host_plic;
+use crate::arch::riscv::plic::{host_plic, PLIC_GLOBAL_SIZE, PLIC_TOTAL_SIZE};
 use crate::arch::riscv::plic::{vplic_global_emul_handler, vplic_hart_emul_handler};
 use crate::arch::riscv::timer::{get_time, set_next_trigger};
 use crate::arch::riscv::{csr::*, trap};
 use crate::memory::{GuestPhysAddr, HostPhysAddr};
 use crate::percpu;
-use crate::plat::qemu_riscv64_virt::PLIC_GLOBAL_SIZE;
 use core::arch::{asm, global_asm};
 use core::time;
 use riscv::register::mtvec::TrapMode;
@@ -90,8 +89,9 @@ pub fn sync_exception_handler(current_cpu: &mut ArchCpu) {
 pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
     let addr: HostPhysAddr = read_csr!(CSR_HTVAL) << 2;
     trace!("guest page fault at {:#x}", addr);
+    let host_plic_base = host_plic().read().base;
     //TODO: get plic addr range from dtb or vpliv object
-    if addr >= 0x0c00_0000 && addr < 0x1000_0000 {
+    if addr >= host_plic_base && addr < host_plic_base + PLIC_TOTAL_SIZE {
         trace!("PLIC access");
         let mut inst: u32 = read_csr!(CSR_HTINST) as u32;
         if inst == 0 {
@@ -110,10 +110,11 @@ pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
         //TODO: decode inst to real instruction
         let (len, inst) = decode_inst(inst);
         if let Some(inst) = inst {
-            if addr >= host_plic().read().base + PLIC_GLOBAL_SIZE {
+            if addr >= host_plic_base + PLIC_GLOBAL_SIZE {
                 vplic_hart_emul_handler(current_cpu, addr, inst);
+            } else {
+                vplic_global_emul_handler(current_cpu, addr, inst);
             }
-            vplic_global_emul_handler(current_cpu, addr, inst);
             current_cpu.sepc += len;
         } else {
             error!("Invalid instruction at {:#x}", current_cpu.sepc);

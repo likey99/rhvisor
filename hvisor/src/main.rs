@@ -49,7 +49,6 @@ mod lang_items;
 mod logging;
 mod memory;
 mod percpu;
-mod plat;
 mod zone;
 /// clear BSS segment
 pub fn clear_bss() {

@@ -4,7 +4,6 @@ use crate::error::HvResult;
 use crate::memory::addr::align_up;
 use crate::memory::{GuestPhysAddr, HostPhysAddr, MemFlags, MemoryRegion, MemorySet};
 use crate::percpu::get_cpu_data;
-use crate::plat::qemu_riscv64_virt::*;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::char::{decode_utf16, MAX};
@@ -232,6 +231,8 @@ pub fn zone_create(
             if cpuid == cpu_set.first_cpu().unwrap() {
                 cpu_data.boot_cpu = true;
             }
+            info!("set cpu{} first_cpu{}", cpuid, cpu_set.first_cpu().unwrap());
+            cpu_data.arch_cpu.first_cpu = cpu_set.first_cpu().unwrap();
             cpu_data.cpu_on_entry = guest_entry;
         });
     }
