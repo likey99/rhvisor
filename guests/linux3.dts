@@ -91,50 +91,9 @@ soc{
 		compatible = "virtio,mmio";
 	};
 
-	virtio_mmio@10006000 {
-		interrupts = <0x6>;
-		interrupt-parent = <&plic>;
-		reg = <0x0 0x10006000 0x0 0x1000>;
-		compatible = "virtio,mmio";
-	};
-
-	virtio_mmio@10005000 {
-		interrupts = <0x5>;
-		interrupt-parent = <&plic>;
-		reg = <0x0 0x10005000 0x0 0x1000>;
-		compatible = "virtio,mmio";
-	};
-
-	virtio_mmio@10004000 {
-		interrupts = <0x4>;
-		interrupt-parent = <&plic>;
-		reg = <0x0 0x10004000 0x0 0x1000>;
-		compatible = "virtio,mmio";
-	};
-
-	virtio_mmio@10003000 {
-		interrupts = <0x3>;
-		interrupt-parent = <&plic>;
-		reg = <0x0 0x10003000 0x0 0x1000>;
-		compatible = "virtio,mmio";
-	};
-
-	virtio_mmio@10002000 {
-		interrupts = <0x2>;
-		interrupt-parent = <&plic>;
-		reg = <0x0 0x10002000 0x0 0x1000>;
-		compatible = "virtio,mmio";
-	};
-
-	virtio_mmio@10001000 {
-		interrupts = <0x1>;
-		interrupt-parent = <&plic>;
-		reg = <0x0 0x10001000 0x0 0x1000>;
-		compatible = "virtio,mmio";
-	};
 };
 	chosen {
-		bootargs = "root=/dev/vda rw earlycon console=hvc0";
+		bootargs = "root=/dev/vda r earlycon console=hvc0";
 	};
 
 };

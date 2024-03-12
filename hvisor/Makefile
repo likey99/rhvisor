@@ -72,6 +72,8 @@ QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
 # QEMU_ARGS +=		 -device loader,file=../guests/Image-62,addr=$(KERNEL_ENTRY_PA) 
 #QEMU_ARGS +=		 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 			 
 QEMU_ARGS +=		 -device virtio-serial-device -chardev pty,id=serial3 -device virtconsole,chardev=serial3
+QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd1 
+QEMU_ARGS +=-device virtio-blk-device,drive=hd1 
 
 
 # QEMU_ARGS	= --machine virt -m 3G -bios $(BOOTLOADER) -nographic

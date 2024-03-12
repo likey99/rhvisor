@@ -120,7 +120,7 @@ pub fn guest_page_fault_handler(current_cpu: &mut ArchCpu) {
             error!("Invalid instruction at {:#x}", current_cpu.sepc);
         }
     } else {
-        panic!("unmaped memmory at {:#x}", addr);
+        panic!("CPU {} unmaped memmory at {:#x}", current_cpu.hartid, addr);
     }
 }
 fn read_inst(addr: GuestPhysAddr) -> u32 {
@@ -177,7 +177,7 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
             trace!("sie {:#x}", read_csr!(CSR_SIE));
         }
         InterruptType::SSI => {
-            debug!("SSI on CPU {}", current_cpu.hartid);
+            trace!("SSI on CPU {}", current_cpu.hartid);
             handle_ssi(current_cpu);
         }
         InterruptType::SEI => {
@@ -214,11 +214,11 @@ pub fn handle_eirq(current_cpu: &mut ArchCpu) {
 }
 pub fn handle_ssi(current_cpu: &mut ArchCpu) {
     let sip = read_csr!(CSR_SIP);
-    debug!("CPU{} sip: {:#x}", current_cpu.hartid, sip);
+    trace!("CPU{} sip: {:#x}", current_cpu.hartid, sip);
     clear_csr!(CSR_SIP, 1 << 1);
     let sip2 = read_csr!(CSR_SIP);
-    debug!("CPU{} sip*: {:#x}", current_cpu.hartid, sip2);
+    trace!("CPU{} sip*: {:#x}", current_cpu.hartid, sip2);
 
-    debug!("hvip: {:#x}", read_csr!(CSR_HVIP));
+    trace!("hvip: {:#x}", read_csr!(CSR_HVIP));
     set_csr!(CSR_HVIP, 1 << 2);
 }

@@ -65,9 +65,10 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
             sbi_ret = sbi_hsm_handler(fid, current_cpu);
         }
         SBI_EID::SEND_IPI => {
-            debug!(
+            trace!(
                 "SBI_EID::SEND_IPI,hartid:{:#x},mask:{:#x}",
-                current_cpu.x[10], current_cpu.x[11]
+                current_cpu.x[10],
+                current_cpu.x[11]
             );
             // let ret = sbi_rt::send_ipi(current_cpu.x[10], current_cpu.x[11]);
             // sbi_ret = SbiRet {

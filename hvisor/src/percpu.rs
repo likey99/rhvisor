@@ -50,7 +50,6 @@ impl PerCpu {
             self.arch_cpu.run();
         } else {
             self.arch_cpu.idle();
-
             self.arch_cpu.run();
         }
     }

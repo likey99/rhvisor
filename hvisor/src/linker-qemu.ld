@@ -50,17 +50,21 @@ SECTIONS
 	__core_end = .;
     . = . + 0x2000000;
     gdtb = .;
-    .dtb : {
-        *(.dtb)
+    .dtb1 : {
+        *(.dtb1)
     }
     . = ALIGN(4K);
-    .rcore : {
-        *(.rcore)
+    .dtb2 : {
+        *(.dtb2)
+    }
+    . = ALIGN(4K);
+    . = 0x84000000;
+    .img2 : {
+        *(.img2)
     }
     . = 0x90000000;
-    vmimg = .;
-    .initrd : {
-        *(.initrd)
+    .img1 : {
+        *(.img1)
     }
     
 }

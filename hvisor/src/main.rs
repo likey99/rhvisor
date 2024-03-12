@@ -87,7 +87,6 @@ fn primary_init_early(dtb: usize) -> HvResult {
         fn ebss(); // end addr of BSS segment
         fn __core_end(); // end of kernel
         fn gdtb();
-        fn vmimg();
     }
     clear_bss();
     logging::init();
@@ -98,7 +97,6 @@ fn primary_init_early(dtb: usize) -> HvResult {
     error!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     println!("core_end: {:#x}", __core_end as usize);
     println!("gdtb: {:#x}", gdtb as usize);
-    println!("vmimg: {:#x}", vmimg as usize);
 
     memory::init_heap();
     memory::heap::heap_test();
