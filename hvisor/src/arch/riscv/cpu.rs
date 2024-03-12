@@ -40,7 +40,7 @@ impl ArchCpu {
         self.stack_top = self.stack_top() as usize;
         self.x[10] = cpu_id; //cpu id
         self.x[11] = dtb; //dtb addr
-        trace!("stack_top: {:#x}", self.stack_top);
+        debug!("CPU {} stack_top: {:#x}", cpu_id, self.stack_top);
 
         // write_csr!(CSR_SSTATUS, self.sstatus);
         // write_csr!(CSR_HSTATUS, self.hstatus);
@@ -67,13 +67,13 @@ impl ArchCpu {
         write_csr!(CSR_VSATP, 0);
         let mut value: usize;
         value = read_csr!(CSR_SEPC);
-        info!("CSR_SEPC: {:#x}", value);
+        info!("CPU {} CSR_SEPC: {:#x}", cpu_id, value);
         value = read_csr!(CSR_STVEC);
-        info!("CSR_STVEC: {:#x}", value);
+        info!("CPU {} CSR_STVEC: {:#x}", cpu_id, value);
         value = read_csr!(CSR_VSATP);
-        info!("CSR_VSATP: {:#x}", value);
+        info!("CPU {} CSR_VSATP: {:#x}", cpu_id, value);
         value = read_csr!(CSR_HGATP);
-        info!("CSR_HGATP: {:#x}", value);
+        info!("CPU {} CSR_HGATP: {:#x}", cpu_id, value);
         //unreachable!();
         0
     }
