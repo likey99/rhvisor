@@ -13,16 +13,16 @@ pub static GUEST1_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
     *include_bytes!("../../guests/linux3.dtb");
 #[link_section = ".img1"]
 /// the guest kernel file
-pub static GUEST1: [u8; include_bytes!("../../guests/Image-62").len()] =
-    *include_bytes!("../../guests/Image-62");
+pub static GUEST1: [u8; include_bytes!("../../guests/Image-62U").len()] =
+    *include_bytes!("../../guests/Image-62U");
 #[link_section = ".dtb2"]
 /// the guest dtb file
 pub static GUEST2_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
     *include_bytes!("../../guests/linux.dtb");
 #[link_section = ".img2"]
 /// the guest kernel file
-pub static GUEST2: [u8; include_bytes!("../../guests/Image-62").len()] =
-    *include_bytes!("../../guests/Image-62");
+pub static GUEST2: [u8; include_bytes!("../../guests/Image-62U").len()] =
+    *include_bytes!("../../guests/Image-62U");
 
 // #[link_section = ".dtb"]
 // /// the guest dtb file

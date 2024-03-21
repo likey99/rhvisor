@@ -7,9 +7,12 @@ use super::cpu::ArchCpu;
 //use crate::arch::riscv::csr::*;
 use riscv::register::{hvip, sie};
 pub mod SBI_EID {
+    pub const BASE_EXTID: usize = 0x10;
     pub const SET_TIMER: usize = 0x54494D45;
     pub const EXTID_HSM: usize = 0x48534D;
     pub const SEND_IPI: usize = 0x735049;
+    pub const RFENCE: usize = 0x52464E43;
+    pub const PMU: usize = 0x504D55;
 }
 pub const SBI_SUCCESS: i64 = 0;
 pub const SBI_ERR_FAILURE: i64 = -1;
@@ -57,6 +60,18 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
 
     match eid {
         //SBI_EXTID_BASE => sbi_ret = sbi_base_handler(fid, current_cpu),
+        SBI_EID::BASE_EXTID => {
+            trace!("SBI_EID::BASE,fid:{:#x}", fid);
+            sbi_ret = sbi_call_5(
+                eid,
+                fid,
+                current_cpu.x[10],
+                current_cpu.x[11],
+                current_cpu.x[12],
+                current_cpu.x[13],
+                current_cpu.x[14],
+            );
+        }
         SBI_EID::SET_TIMER => {
             //debug!("SBI_EID::SET_TIMER on CPU {}", current_cpu.hartid);
             sbi_ret = sbi_time_handler(current_cpu.x[10], fid);
@@ -70,11 +85,30 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
                 current_cpu.x[10],
                 current_cpu.x[11]
             );
-            // let ret = sbi_rt::send_ipi(current_cpu.x[10], current_cpu.x[11]);
-            // sbi_ret = SbiRet {
-            //     error: ret.error as i64,
-            //     value: ret.value as i64,
-            // };
+            sbi_ret = sbi_call_5(
+                eid,
+                fid,
+                current_cpu.x[10],
+                current_cpu.x[11],
+                current_cpu.x[12],
+                current_cpu.x[13],
+                current_cpu.x[14],
+            );
+        }
+        SBI_EID::RFENCE => {
+            trace!("SBI_EID::RFENCE,mask:{:#x}", current_cpu.x[10]);
+            sbi_ret = sbi_call_5(
+                eid,
+                fid,
+                current_cpu.x[10],
+                current_cpu.x[11],
+                current_cpu.x[12],
+                current_cpu.x[13],
+                current_cpu.x[14],
+            );
+        }
+        SBI_EID::PMU => {
+            trace!("SBI_EID::PMU,fid:{:#x}", fid);
             sbi_ret = sbi_call_5(
                 eid,
                 fid,

@@ -51,16 +51,17 @@ run: run-inner
 
 # QEMU_ARGS := -machine virt,dumpdtb=qemu.dtb
 QEMU_ARGS := -machine virt
+# QEMU_ARGS := -machine virt,aclint=on
 QEMU_ARGS +=-nographic 
 QEMU_ARGS +=-cpu rv64 
 QEMU_ARGS +=-m 3G 
 #rember to change the consts MAX_CPU_NUM and dts
 QEMU_ARGS +=-smp 4
-# QEMU_ARGS +=-bios default
-QEMU_ARGS +=-bios $(BOOTLOADER)
+QEMU_ARGS +=-bios default
+# QEMU_ARGS +=-bios $(BOOTLOADER)
 # QEMU_ARGS +=-kernel ../guests/Image-62 
 # QEMU_ARGS +=-kernel ../guests/bao-linux.bin
-# QEMU_ARGS +=-kernel $(KERNEL_BIN)
+QEMU_ARGS +=-kernel $(KERNEL_BIN)
 # QEMU_ARGS +=-kernel ../guests/os_ch5_802.bin
 # QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd0 
 QEMU_ARGS +=-drive file=../guests/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
@@ -68,7 +69,7 @@ QEMU_ARGS +=-device virtio-blk-device,drive=hd0
 # QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=ttyS0"
 # QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=hvc0"
 
-QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
+# QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
 # QEMU_ARGS +=		 -device loader,file=../guests/Image-62,addr=$(KERNEL_ENTRY_PA) 
 #QEMU_ARGS +=		 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 			 
 QEMU_ARGS +=		 -device virtio-serial-device -chardev pty,id=serial3 -device virtconsole,chardev=serial3
