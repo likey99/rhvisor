@@ -234,6 +234,17 @@ pub fn zone_create(
             info!("set cpu{} first_cpu{}", cpuid, cpu_set.first_cpu().unwrap());
             cpu_data.arch_cpu.first_cpu = cpu_set.first_cpu().unwrap();
             cpu_data.cpu_on_entry = guest_entry;
+            let cpu_isa = guest_fdt
+                .cpus()
+                .find(|cpu| cpu.ids().all().next().unwrap() == cpuid)
+                .unwrap()
+                .properties()
+                .find(|p| p.name == "riscv,isa")
+                .unwrap();
+            if cpu_isa.as_str().unwrap().contains("sstc") {
+                println!("cpu{} support sstc", cpuid);
+                cpu_data.arch_cpu.sstc = true;
+            }
         });
     }
     {}

@@ -47,7 +47,7 @@ disa:
 	@$(OBJDUMP) --disassemble $(KERNEL_ELF) > hvisor.S
 
 
-run: run-inner
+run: dtb run-inner
 
 # QEMU_ARGS := -machine virt,dumpdtb=qemu.dtb
 QEMU_ARGS := -machine virt

@@ -13,7 +13,7 @@
 			reg = <0x3>;
 			status = "okay";
 			compatible = "riscv";
-			riscv,isa = "rv64imafdcsu";
+			riscv,isa = "rv64imafdcsu_sstc";
 			mmu-type = "riscv,sv39";
 
 			cpu3_intc: interrupt-controller {

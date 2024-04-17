@@ -104,6 +104,17 @@ fn primary_init_early(dtb: usize) -> HvResult {
     memory::frame::frame_allocator_test();
     info!("host dtb: {:#x}", dtb);
     let host_fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8) }.unwrap();
+    let hcpu = host_fdt
+        .cpus()
+        .next()
+        .unwrap()
+        .properties()
+        .find(|p| p.name == "riscv,isa")
+        .unwrap();
+    println!("host cpu riscv,isa: {:#?}", hcpu.as_str());
+    if hcpu.as_str().unwrap().contains("sstc") {
+        println!("host cpu support sstc");
+    }
     memory::init_hv_page_table(host_fdt).unwrap();
     let plic_info = host_fdt.find_node("/soc/plic").unwrap();
     init_plic(
@@ -120,7 +131,6 @@ fn primary_init_early(dtb: usize) -> HvResult {
         let vm_paddr_start: usize = GUESTS[vmid].0.as_ptr() as usize;
         zone_create(vmid, vm_paddr_start, GUESTS[vmid].1.as_ptr(), DTB_ADDR);
     }
-
     INIT_EARLY_OK.store(1, Ordering::Release);
     Ok(())
 }

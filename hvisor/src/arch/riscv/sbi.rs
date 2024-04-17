@@ -4,7 +4,7 @@
 use crate::percpu::get_cpu_data;
 
 use super::cpu::ArchCpu;
-//use crate::arch::riscv::csr::*;
+use crate::arch::riscv::csr::*;
 use riscv::register::{hvip, sie};
 pub mod SBI_EID {
     pub const BASE_EXTID: usize = 0x10;
@@ -74,7 +74,7 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
         }
         SBI_EID::SET_TIMER => {
             //debug!("SBI_EID::SET_TIMER on CPU {}", current_cpu.hartid);
-            sbi_ret = sbi_time_handler(current_cpu.x[10], fid);
+            sbi_ret = sbi_time_handler(fid, current_cpu);
         }
         SBI_EID::EXTID_HSM => {
             sbi_ret = sbi_hsm_handler(fid, current_cpu);
@@ -165,19 +165,24 @@ pub fn sbi_call_5(
     SbiRet { error, value }
 }
 
-pub fn sbi_time_handler(stime: usize, fid: usize) -> SbiRet {
+pub fn sbi_time_handler(fid: usize, current_cpu: &mut ArchCpu) -> SbiRet {
     let mut sbi_ret = SbiRet {
         error: SBI_SUCCESS,
         value: 0,
     };
-    //debug!("SBI_SET_TIMER stime: {:#x}", stime);
-    set_timer(stime);
-    unsafe {
-        // clear guest timer interrupt pending
-        hvip::clear_vstip();
-        // enable timer interrupt
-        sie::set_stimer();
+    let stime = current_cpu.x[10];
+    if current_cpu.sstc {
+        write_csr!(CSR_VSTIMECMP, stime);
+    } else {
+        set_timer(stime);
+        unsafe {
+            // clear guest timer interrupt pending
+            hvip::clear_vstip();
+            // enable timer interrupt
+            sie::set_stimer();
+        }
     }
+    //debug!("SBI_SET_TIMER stime: {:#x}", stime);
     return sbi_ret;
 }
 pub fn sbi_hsm_handler(fid: usize, current_cpu: &mut ArchCpu) -> SbiRet {

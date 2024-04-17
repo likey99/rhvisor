@@ -16,9 +16,6 @@ pub const CSR_VSCAUSE: u64 = 0x242;
 pub const CSR_VSTVAL: u64 = 0x243;
 pub const CSR_VSIP: u64 = 0x244;
 pub const CSR_VSATP: u64 = 0x280;
-/* Sstc Extension */
-pub const CSR_VSTIMECMP: u64 = 0x24D;
-pub const CSR_VSTIMECMPH: u64 = 0x25D;
 
 pub const CSR_HSTATUS: u64 = 0x600;
 pub const CSR_HEDELEG: u64 = 0x602;
@@ -41,6 +38,8 @@ pub const CSR_HENVCFGH: u64 = 0x61A;
 /* Sstc Extension */
 pub const CSR_STIMECMP: u64 = 0x14D;
 pub const CSR_STIMECMPH: u64 = 0x15D;
+pub const CSR_VSTIMECMP: u64 = 0x24D;
+pub const CSR_VSTIMECMPH: u64 = 0x25D;
 
 macro_rules! read_csr {
     ($csr_number:expr) => {

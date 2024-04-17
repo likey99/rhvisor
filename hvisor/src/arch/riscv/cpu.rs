@@ -14,6 +14,7 @@ pub struct ArchCpu {
     pub stack_top: usize,
     pub hartid: usize,
     pub first_cpu: usize,
+    pub sstc: bool,
     pub ssi: usize,
     pub sti: usize,
     pub sei: usize,
@@ -28,6 +29,7 @@ impl ArchCpu {
             stack_top: 0,
             hartid,
             first_cpu: 0,
+            sstc: false,
             ssi: 0,
             sti: 0,
             sei: 0,
@@ -49,7 +51,7 @@ impl ArchCpu {
         self.x[10] = cpu_id; //cpu id
         self.x[11] = dtb; //dtb addr
         debug!("CPU {} stack_top: {:#x}", cpu_id, self.stack_top);
-
+        // write_csr!(CSR_STIMECMP, 0);
         // write_csr!(CSR_SSTATUS, self.sstatus);
         // write_csr!(CSR_HSTATUS, self.hstatus);
         // write_csr!(CSR_SEPC, self.sepc);
