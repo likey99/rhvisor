@@ -1,0 +1,827 @@
+❯ clippy
+clippy: command not found
+❯ cd hvisor
+❯ cargo clippy
+    Checking hvisor v0.1.0 (/home/likey/rust/rhvisor/hvisor)
+warning: unused imports: `arch::global_asm`, `mem`
+  --> src/main.rs:17:12
+   |
+17 | use core::{arch::global_asm, mem};
+   |            ^^^^^^^^^^^^^^^^  ^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `fdt::Fdt`
+  --> src/main.rs:19:5
+   |
+19 | use fdt::Fdt;
+   |     ^^^^^^^^
+
+warning: unused imports: `memory::frame::Frame`, `self`
+  --> src/main.rs:25:16
+   |
+25 |         plic::{self, init_plic},
+   |                ^^^^
+...
+30 |     memory::frame::Frame,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: `crate` references the macro call's crate
+  --> src/error.rs:95:13
+   |
+95 |         use crate::error::{HvError, HvErrorNum::*};
+   |             ^^^^^ help: to reference the macro definition's crate, use: `$crate`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#crate_in_macro_def
+   = note: `#[warn(clippy::crate_in_macro_def)]` on by default
+
+warning: unused imports: `INVALID_ADDRESS`, `PAGE_SIZE`
+ --> src/arch/riscv/cpu.rs:4:21
+  |
+4 | use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
+  |                     ^^^^^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `riscv::register::sie`
+ --> src/arch/riscv/cpu.rs:6:5
+  |
+6 | use riscv::register::sie;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `core::ops::Add`
+ --> src/arch/riscv/plic.rs:1:5
+  |
+1 | use core::ops::Add;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `crate::arch::riscv::csr::*`
+ --> src/arch/riscv/plic.rs:3:5
+  |
+3 | use crate::arch::riscv::csr::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `aarch64_cpu::registers::CCSIDR_EL1::AssociativityWithCCIDX::Value`
+ --> src/arch/riscv/plic.rs:5:5
+  |
+5 | use aarch64_cpu::registers::CCSIDR_EL1::AssociativityWithCCIDX::Value;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `sie`
+ --> src/arch/riscv/plic.rs:6:29
+  |
+6 | use riscv::register::{hvip, sie};
+  |                             ^^^
+
+warning: unnecessary parentheses around assigned value
+   --> src/arch/riscv/plic.rs:194:21
+    |
+194 |         let index = ((offset - PLIC_GLOBAL_SIZE) & 0xfff);
+    |                     ^                                   ^
+    |
+    = note: `#[warn(unused_parens)]` on by default
+help: remove these parentheses
+    |
+194 -         let index = ((offset - PLIC_GLOBAL_SIZE) & 0xfff);
+194 +         let index = (offset - PLIC_GLOBAL_SIZE) & 0xfff;
+    |
+
+warning: unused import: `super::plic::PLIC`
+ --> src/arch/riscv/trap.rs:2:5
+  |
+2 | use super::plic::PLIC;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `get_time`, `set_next_trigger`
+ --> src/arch/riscv/trap.rs:6:33
+  |
+6 | use crate::arch::riscv::timer::{get_time, set_next_trigger};
+  |                                 ^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `trap`
+ --> src/arch/riscv/trap.rs:7:34
+  |
+7 | use crate::arch::riscv::{csr::*, trap};
+  |                                  ^^^^
+
+warning: unused import: `crate::percpu`
+ --> src/arch/riscv/trap.rs:9:5
+  |
+9 | use crate::percpu;
+  |     ^^^^^^^^^^^^^
+
+warning: unused import: `core::time`
+  --> src/arch/riscv/trap.rs:11:5
+   |
+11 | use core::time;
+   |     ^^^^^^^^^^
+
+warning: unused import: `hcounteren`
+  --> src/arch/riscv/trap.rs:13:23
+   |
+13 | use riscv::register::{hcounteren, stvec};
+   |                       ^^^^^^^^^^
+
+warning: unused import: `core::arch::global_asm`
+ --> src/arch/riscv/entry.rs:1:5
+  |
+1 | use core::arch::global_asm; // 支持内联汇编
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PER_CPU_ARRAY_PTR`
+ --> src/arch/riscv/entry.rs:2:21
+  |
+2 | use crate::consts::{PER_CPU_ARRAY_PTR,PER_CPU_SIZE};
+  |                     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `spin::Mutex`
+ --> src/config.rs:1:5
+  |
+1 | use spin::Mutex;
+  |     ^^^^^^^^^^^
+
+warning: statics have by default a `'static` lifetime
+  --> src/config.rs:52:23
+   |
+52 | pub static GUESTS: [(&'static [u8], &'static [u8]); 2] =
+   |                      -^^^^^^^----- help: consider removing `'static`: `&[u8]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_static_lifetimes
+   = note: `#[warn(clippy::redundant_static_lifetimes)]` on by default
+
+warning: statics have by default a `'static` lifetime
+  --> src/config.rs:52:38
+   |
+52 | pub static GUESTS: [(&'static [u8], &'static [u8]); 2] =
+   |                                     -^^^^^^^----- help: consider removing `'static`: `&[u8]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_static_lifetimes
+
+warning: unused import: `align_up`
+ --> src/consts.rs:1:27
+  |
+1 | use crate::memory::addr::{align_up, PhysAddr, VirtAddr};
+  |                           ^^^^^^^^
+
+warning: unused imports: `HV_BASE`, `HV_PHY_BASE`
+ --> src/memory/addr.rs:5:21
+  |
+5 | use crate::consts::{HV_BASE, HV_PHY_BASE, PAGE_SIZE};
+  |                     ^^^^^^^  ^^^^^^^^^^^
+
+warning: unused imports: `align_down`, `virt_to_phys`
+ --> src/memory/frame.rs:6:5
+  |
+6 |     align_down, align_up, is_aligned, phys_to_virt, virt_to_phys, PhysAddr, VirtAddr,
+  |     ^^^^^^^^^^                                      ^^^^^^^^^^^^
+
+warning: unused import: `crate::memory::addr::align_16`
+  --> src/memory/frame.rs:10:5
+   |
+10 | use crate::memory::addr::align_16;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GuestPhysAddr`, `HostPhysAddr`
+ --> src/memory/mapper.rs:2:32
+  |
+2 |     virt_to_phys, AlignedPage, GuestPhysAddr, HostPhysAddr, MemFlags, MemoryRegion, PhysAddr,
+  |                                ^^^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused import: `spin::Once`
+ --> src/memory/mm.rs:7:5
+  |
+7 | use spin::Once;
+  |     ^^^^^^^^^^
+
+warning: unused imports: `HV_BASE`, `HV_PHY_BASE`, `hv_end`
+ --> src/memory/mod.rs:9:21
+  |
+9 | use crate::consts::{hv_end, HV_BASE, HV_PHY_BASE};
+  |                     ^^^^^^  ^^^^^^^  ^^^^^^^^^^^
+
+warning: unused import: `aarch64_cpu::registers::SCTLR_EL3::M`
+  --> src/memory/mod.rs:11:5
+   |
+11 | use aarch64_cpu::registers::SCTLR_EL3::M;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `core::mem`
+ --> src/percpu.rs:1:5
+  |
+1 | use core::mem;
+  |     ^^^^^^^^^
+
+warning: unused import: `PAGE_SIZE`
+ --> src/percpu.rs:4:38
+  |
+4 | use crate::consts::{INVALID_ADDRESS, PAGE_SIZE, PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
+  |                                      ^^^^^^^^^
+
+warning: unused imports: `CSR_SIE`, `CSR_SIP`, `memory`, `read_csr`
+ --> src/percpu.rs:7:13
+  |
+7 | use crate::{memory, read_csr, CSR_SIE, CSR_SIP};
+  |             ^^^^^^  ^^^^^^^^  ^^^^^^^  ^^^^^^^
+
+warning: unused import: `ACTIVATED_CPUS`
+ --> src/percpu.rs:8:13
+  |
+8 | use crate::{ACTIVATED_CPUS, ENTERED_CPUS};
+  |             ^^^^^^^^^^^^^^
+
+warning: unused imports: `MAX`, `decode_utf16`
+ --> src/zone.rs:9:18
+  |
+9 | use core::char::{decode_utf16, MAX};
+  |                  ^^^^^^^^^^^^  ^^^
+
+warning: unused import: `self`
+  --> src/zone.rs:10:17
+   |
+10 | use core::mem::{self};
+   |                 ^^^^
+
+warning: unneeded unit return type
+   --> src/main.rs:155:48
+    |
+155 | pub fn rust_main(cpuid: usize, host_dtb: usize) -> () {
+    |                                                ^^^^^^ help: remove the `-> ()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unused_unit
+    = note: `#[warn(clippy::unused_unit)]` on by default
+
+warning: unreachable statement
+  --> src/arch/riscv/trap.rs:85:13
+   |
+84 |             panic!("unhandled trap");
+   |             ------------------------ any code following this expression is unreachable
+85 |             current_cpu.idle();
+   |             ^^^^^^^^^^^^^^^^^^^ unreachable statement
+   |
+   = note: `#[warn(unreachable_code)]` on by default
+
+warning: value assigned to `ins` is never read
+   --> src/arch/riscv/trap.rs:127:13
+    |
+127 |     let mut ins: u32 = 0;
+    |             ^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/arch/riscv/trap.rs:203:9
+    |
+203 |     let mut host_plic = host_plic();
+    |         ----^^^^^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/arch/riscv/trap.rs:206:9
+    |
+206 |     let mut irq = unsafe { core::ptr::read_volatile(claim_and_complete_addr as *const u32) };
+    |         ----^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: static `ACTIVATED_CPUS` is never used
+  --> src/main.rs:63:8
+   |
+63 | static ACTIVATED_CPUS: AtomicU32 = AtomicU32::new(0);
+   |        ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: method `code` is never used
+  --> src/error.rs:70:12
+   |
+53 | impl HvError {
+   | ------------ method in this implementation
+...
+70 |     pub fn code(&self) -> i32 {
+   |            ^^^^
+
+warning: constant `PLIC_PENDING_BASE` is never used
+  --> src/arch/riscv/plic.rs:51:11
+   |
+51 | pub const PLIC_PENDING_BASE: usize = 0x1000;
+   |           ^^^^^^^^^^^^^^^^^
+
+warning: function `hv_end` is never used
+  --> src/consts.rs:27:8
+   |
+27 | pub fn hv_end() -> VirtAddr {
+   |        ^^^^^^
+
+warning: method `offset` is never used
+  --> src/memory/mapper.rs:14:12
+   |
+13 | impl Mapper {
+   | ----------- method in this implementation
+14 |     pub fn offset(&self) -> usize {
+   |            ^^^^^^
+
+warning: method `is_huge` is never used
+  --> src/memory/paging.rs:58:18
+   |
+45 | impl PageSize {
+   | ------------- method in this implementation
+...
+58 |     pub const fn is_huge(self) -> bool {
+   |                  ^^^^^^^
+
+warning: function `npages` is never used
+   --> src/memory/paging.rs:565:8
+    |
+565 | pub fn npages(sz: usize) -> usize {
+    |        ^^^^^^
+
+warning: associated items `from_cpuset_slice`, `clear_bit`, and `iter_except` are never used
+  --> src/zone.rs:28:12
+   |
+24 | impl CpuSet {
+   | ----------- associated items in this implementation
+...
+28 |     pub fn from_cpuset_slice(cpu_set: &[u8]) -> Self {
+   |            ^^^^^^^^^^^^^^^^^
+...
+43 |     pub fn clear_bit(&mut self, id: usize) {
+   |            ^^^^^^^^^
+...
+57 |     pub fn iter_except<'a>(&'a self, id: usize) -> impl Iterator<Item = usize> + 'a {
+   |            ^^^^^^^^^^^
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+  --> src/arch/riscv/cpu.rs:34:41
+   |
+34 |         PER_CPU_ARRAY_PTR as VirtAddr + (self.get_hartid() + 1) as usize * PER_CPU_SIZE - 8
+   |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `(self.get_hartid() + 1)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+   = note: `#[warn(clippy::unnecessary_cast)]` on by default
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+  --> src/arch/riscv/cpu.rs:42:26
+   |
+42 |         self.stack_top = self.stack_top() as usize;
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.stack_top()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u32` -> `u32`)
+   --> src/arch/riscv/plic.rs:107:57
+    |
+107 |             core::ptr::write_volatile(addr as *mut u32, irq_id as u32);
+    |                                                         ^^^^^^^^^^^^^ help: try: `irq_id`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: manual `Range::contains` implementation
+   --> src/arch/riscv/plic.rs:126:8
+    |
+126 |     if offset >= PLIC_PRIORITY_BASE && offset < PLIC_ENABLE_BASE {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(PLIC_PRIORITY_BASE..PLIC_ENABLE_BASE).contains(&offset)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+    = note: `#[warn(clippy::manual_range_contains)]` on by default
+
+error: this comparison involving the minimum or maximum element for this type contains a case that is always true or always false
+   --> src/arch/riscv/plic.rs:126:8
+    |
+126 |     if offset >= PLIC_PRIORITY_BASE && offset < PLIC_ENABLE_BASE {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: because `PLIC_PRIORITY_BASE` is the minimum value for this type, this comparison is always true
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#absurd_extreme_comparisons
+    = note: `#[deny(clippy::absurd_extreme_comparisons)]` on by default
+
+warning: manual `Range::contains` implementation
+   --> src/arch/riscv/plic.rs:142:15
+    |
+142 |     } else if offset >= PLIC_ENABLE_BASE && offset < PLIC_GLOBAL_SIZE {
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(PLIC_ENABLE_BASE..PLIC_GLOBAL_SIZE).contains(&offset)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+
+warning: manual `Range::contains` implementation
+   --> src/arch/riscv/plic.rs:191:8
+    |
+191 |     if offset >= PLIC_GLOBAL_SIZE && offset < PLIC_TOTAL_SIZE {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(PLIC_GLOBAL_SIZE..PLIC_TOTAL_SIZE).contains(&offset)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s1pt.rs:115:33
+    |
+115 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                 ^^^^^^^^^^^^^^^^^^^^ help: try: `!PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s1pt.rs:115:58
+    |
+115 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                          ^^^^^^^^^^^^^ help: try: `self.0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s1pt.rs:115:74
+    |
+115 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                                          ^^^^^^^^^^^^^^^^^^^ help: try: `PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s1pt.rs:121:33
+    |
+121 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                 ^^^^^^^^^^^^^^^^^^^^ help: try: `!PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s1pt.rs:121:58
+    |
+121 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                          ^^^^^^^^^^^^^ help: try: `self.0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s1pt.rs:121:74
+    |
+121 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                                          ^^^^^^^^^^^^^^^^^^^ help: try: `PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s2pt.rs:116:33
+    |
+116 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                 ^^^^^^^^^^^^^^^^^^^^ help: try: `!PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s2pt.rs:116:58
+    |
+116 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                          ^^^^^^^^^^^^^ help: try: `self.0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s2pt.rs:116:74
+    |
+116 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                                          ^^^^^^^^^^^^^^^^^^^ help: try: `PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s2pt.rs:122:33
+    |
+122 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                 ^^^^^^^^^^^^^^^^^^^^ help: try: `!PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s2pt.rs:122:58
+    |
+122 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                          ^^^^^^^^^^^^^ help: try: `self.0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/arch/riscv/s2pt.rs:122:74
+    |
+122 |         self.0 = (attr.bits() & !PTE_PPN_MASK as u64) | (self.0 as u64 & PTE_PPN_MASK as u64);
+    |                                                                          ^^^^^^^^^^^^^^^^^^^ help: try: `PTE_PPN_MASK`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+   --> src/arch/riscv/s2pt.rs:156:35
+    |
+156 |             bits.set_bits(60..64, mode as usize);
+    |                                   ^^^^^^^^^^^^^ help: try: `mode`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: unneeded late initialization
+  --> src/arch/riscv/sbi.rs:59:5
+   |
+59 |     let sbi_ret;
+   |     ^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_late_init
+   = note: `#[warn(clippy::needless_late_init)]` on by default
+help: declare `sbi_ret` here
+   |
+61 |     let sbi_ret = match eid {
+   |     +++++++++++++
+help: remove the assignments from the `match` arms
+   |
+65 ~             sbi_call_5(
+66 |                 eid,
+ ...
+72 |                 current_cpu.x[14],
+73 ~             )
+74 |         }
+75 |         SBI_EID::SET_TIMER => {
+76 |             //debug!("SBI_EID::SET_TIMER on CPU {}", current_cpu.hartid);
+77 ~             sbi_time_handler(current_cpu.x[10], fid)
+78 |         }
+79 |         SBI_EID::EXTID_HSM => {
+80 ~             sbi_hsm_handler(fid, current_cpu)
+81 |         }
+ ...
+87 |             );
+88 ~             sbi_call_5(
+89 |                 eid,
+ ...
+95 |                 current_cpu.x[14],
+96 ~             )
+97 |         }
+98 |         SBI_EID::RFENCE => {
+99 |             trace!("SBI_EID::RFENCE,mask:{:#x}", current_cpu.x[10]);
+100~             sbi_call_5(
+101|                 eid,
+ ...
+107|                 current_cpu.x[14],
+108~             )
+109|         }
+110|         SBI_EID::PMU => {
+111|             trace!("SBI_EID::PMU,fid:{:#x}", fid);
+112~             sbi_call_5(
+113|                 eid,
+ ...
+119|                 current_cpu.x[14],
+120~             )
+121|         }
+ ...
+127|             );
+128~             sbi_call_5(
+129|                 eid,
+ ...
+135|                 current_cpu.x[14],
+136~             )
+   |
+help: add a semicolon after the `match` expression
+   |
+138|     };
+   |      +
+
+warning: unneeded `return` statement
+   --> src/arch/riscv/sbi.rs:181:5
+    |
+181 |     return sbi_ret;
+    |     ^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+    = note: `#[warn(clippy::needless_return)]` on by default
+help: remove `return`
+    |
+181 -     return sbi_ret;
+181 +     sbi_ret
+    |
+
+warning: casting to the same type is unnecessary (`u32` -> `u32`)
+   --> src/arch/riscv/trap.rs:158:14
+    |
+158 |         4 => inst as u32,
+    |              ^^^^^^^^^^^ help: try: `inst`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: unneeded late initialization
+   --> src/arch/riscv/trap.rs:166:5
+    |
+166 |     let trap_code: usize;
+    |     ^^^^^^^^^^^^^^^^^^^^^ created here
+167 |     trap_code = read_csr!(CSR_SCAUSE);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ initialised here
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_late_init
+help: declare `trap_code` here
+    |
+167 |     let trap_code: usize = read_csr!(CSR_SCAUSE);
+    |     ~~~~~~~~~~~~~~~~~~~~
+
+error: redundant redefinition of a binding `start_paddr`
+  --> src/memory/mapper.rs:43:9
+   |
+43 |         let start_paddr = start_paddr;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: `start_paddr` is initially defined here
+  --> src/memory/mapper.rs:38:9
+   |
+38 |         start_paddr: PhysAddr,
+   |         ^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_locals
+   = note: `#[deny(clippy::redundant_locals)]` on by default
+
+warning: parameter is only used in recursion
+   --> src/memory/paging.rs:166:10
+    |
+166 |         &self,
+    |          ^^^^
+    |
+note: parameter used here
+   --> src/memory/paging.rs:180:38
+    |
+180 |                         Ok(entry) => self.walk(entry, level + 1, vaddr, limit, func),
+    |                                      ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#only_used_in_recursion
+    = note: `#[warn(clippy::only_used_in_recursion)]` on by default
+
+warning: empty `loop {}` wastes CPU cycles
+   --> src/memory/paging.rs:485:17
+    |
+485 |                 loop {}
+    |                 ^^^^^^^
+    |
+    = help: you should either use `panic!()` or add a call pausing or sleeping the thread to the loop body
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#empty_loop
+    = note: `#[warn(clippy::empty_loop)]` on by default
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+  --> src/percpu.rs:25:53
+   |
+25 |         let vaddr = PER_CPU_ARRAY_PTR as VirtAddr + cpu_id as usize * PER_CPU_SIZE;
+   |                                                     ^^^^^^^^^^^^^^^ help: try: `cpu_id`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+  --> src/percpu.rs:58:59
+   |
+58 |     let cpu_data: usize = PER_CPU_ARRAY_PTR as VirtAddr + cpu_id as usize * PER_CPU_SIZE;
+   |                                                           ^^^^^^^^^^^^^^^ help: try: `cpu_id`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+  --> src/zone.rs:36:19
+   |
+36 |         Self::new(cpu_set.len() as usize * 8 - 1, cpu_set_long)
+   |                   ^^^^^^^^^^^^^^^^^^^^^^ help: try: `cpu_set.len()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: the following explicit lifetimes could be elided: 'a
+  --> src/zone.rs:54:17
+   |
+54 |     pub fn iter<'a>(&'a self) -> impl Iterator<Item = usize> + 'a {
+   |                 ^^   ^^                                        ^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_lifetimes
+   = note: `#[warn(clippy::needless_lifetimes)]` on by default
+help: elide the lifetimes
+   |
+54 -     pub fn iter<'a>(&'a self) -> impl Iterator<Item = usize> + 'a {
+54 +     pub fn iter(&self) -> impl Iterator<Item = usize> + '_ {
+   |
+
+warning: the following explicit lifetimes could be elided: 'a
+  --> src/zone.rs:57:24
+   |
+57 |     pub fn iter_except<'a>(&'a self, id: usize) -> impl Iterator<Item = usize> + 'a {
+   |                        ^^   ^^                                                   ^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_lifetimes
+help: elide the lifetimes
+   |
+57 -     pub fn iter_except<'a>(&'a self, id: usize) -> impl Iterator<Item = usize> + 'a {
+57 +     pub fn iter_except(&self, id: usize) -> impl Iterator<Item = usize> + '_ {
+   |
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+  --> src/zone.rs:72:34
+   |
+72 |             cpu_set: CpuSet::new(MAX_CPU_NUM as usize, 0),
+   |                                  ^^^^^^^^^^^^^^^^^^^^ help: try: `MAX_CPU_NUM`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+   --> src/zone.rs:218:30
+    |
+218 |         zone.cpu_set.set_bit(cpu_id as usize);
+    |                              ^^^^^^^^^^^^^^^ help: try: `cpu_id`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: the loop variable `vmid` is used to index `GUESTS`
+   --> src/main.rs:113:17
+    |
+113 |     for vmid in 0..GUESTS.len() {
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator and enumerate()
+    |
+113 |     for (vmid, <item>) in GUESTS.iter().enumerate() {
+    |         ~~~~~~~~~~~~~~    ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+warning: casting to the same type is unnecessary (`usize` -> `usize`)
+   --> src/main.rs:165:31
+    |
+165 |         wakeup_secondary_cpus(cpuid as usize, host_dtb);
+    |                               ^^^^^^^^^^^^^^ help: try: `cpuid`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: unused `core::result::Result` that must be used
+   --> src/main.rs:121:9
+    |
+121 |         zone_create(vmid, vm_paddr_start, GUESTS[vmid].1.as_ptr(), DTB_ADDR);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+121 |         let _ = zone_create(vmid, vm_paddr_start, GUESTS[vmid].1.as_ptr(), DTB_ADDR);
+    |         +++++++
+
+warning: unused `core::result::Result` that must be used
+   --> src/main.rs:167:5
+    |
+167 |     wait_for(|| ENTERED_CPUS.load(Ordering::Acquire) < MAX_CPU_NUM as _);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+167 |     let _ = wait_for(|| ENTERED_CPUS.load(Ordering::Acquire) < MAX_CPU_NUM as _);
+    |     +++++++
+
+warning: unused `core::result::Result` that must be used
+   --> src/main.rs:176:9
+    |
+176 |         primary_init_early(host_dtb); // create root cell here
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+176 |         let _ = primary_init_early(host_dtb); // create root cell here
+    |         +++++++
+
+warning: unused `core::result::Result` that must be used
+   --> src/main.rs:183:5
+    |
+183 |     wait_for_counter(&INITED_CPUS, MAX_CPU_NUM as _);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+183 |     let _ = wait_for_counter(&INITED_CPUS, MAX_CPU_NUM as _);
+    |     +++++++
+
+warning: unused `core::result::Result` that must be used
+   --> src/main.rs:189:9
+    |
+189 |         wait_for_counter(&INIT_LATE_OK, 1);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+189 |         let _ = wait_for_counter(&INIT_LATE_OK, 1);
+    |         +++++++
+
+warning: module `SBI_EID` should have a snake case name
+ --> src/arch/riscv/sbi.rs:9:9
+  |
+9 | pub mod SBI_EID {
+  |         ^^^^^^^ help: convert the identifier to snake case: `sbi_eid`
+  |
+  = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `ExceptionType` should have a snake case name
+  --> src/arch/riscv/trap.rs:22:9
+   |
+22 | pub mod ExceptionType {
+   |         ^^^^^^^^^^^^^ help: convert the identifier to snake case: `exception_type`
+
+warning: module `InterruptType` should have a snake case name
+  --> src/arch/riscv/trap.rs:29:9
+   |
+29 | pub mod InterruptType {
+   |         ^^^^^^^^^^^^^ help: convert the identifier to snake case: `interrupt_type`
+
+warning: `hvisor` (bin "hvisor") generated 91 warnings
+error: could not compile `hvisor` (bin "hvisor") due to 2 previous errors; 91 warnings emitted

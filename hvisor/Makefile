@@ -59,22 +59,28 @@ QEMU_ARGS +=-m 3G
 QEMU_ARGS +=-smp 4
 QEMU_ARGS +=-bios default
 # QEMU_ARGS +=-bios $(BOOTLOADER)
-# QEMU_ARGS +=-kernel ../guests/Image-62 
-# QEMU_ARGS +=-kernel ../guests/bao-linux.bin
+# QEMU_ARGS +=-kernel ../guests/img/Image-qemu-riscv64-virt 
+# QEMU_ARGS +=-kernel ../guests/img/Image-62U
 QEMU_ARGS +=-kernel $(KERNEL_BIN)
-# QEMU_ARGS +=-kernel ../guests/os_ch5_802.bin
-# QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd0 
-QEMU_ARGS +=-drive file=../guests/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
+# QEMU_ARGS +=-kernel ../guests/img/os_ch5_802.bin
+# QEMU_ARGS +=-drive file=../guests/rfs/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
+QEMU_ARGS +=		 -device virtio-serial-device -chardev pty,id=serial3 -device virtconsole,chardev=serial3
+QEMU_ARGS +=-drive file=../guests/rfs/rootfs-busybox.qcow2,format=qcow2,id=hd1 
+QEMU_ARGS +=-device virtio-blk-device,drive=hd1 
+
+QEMU_ARGS +=-drive file=../guests/rfs/rootfs1.ext4,format=raw,id=hd0 
 QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
 # QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=ttyS0"
 # QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=hvc0"
-
+# QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=ttyS0 ip=192.168.42.15"
+QEMU_ARGS +=-device virtio-net-device,netdev=net0
+QEMU_ARGS +=-netdev user,id=net0,net=192.168.42.0/24,hostfwd=tcp:127.0.0.1:5555-:22
+# QEMU_ARGS +=-device e1000,netdev=net0 -netdev user,id=net0
 # QEMU_ARGS +=		 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) 
 # QEMU_ARGS +=		 -device loader,file=../guests/Image-62,addr=$(KERNEL_ENTRY_PA) 
 #QEMU_ARGS +=		 -device loader,file=../guests/os_ch5_802.bin,addr=0x80400000 			 
-QEMU_ARGS +=		 -device virtio-serial-device -chardev pty,id=serial3 -device virtconsole,chardev=serial3
-QEMU_ARGS +=-drive file=../guests/rootfs-busybox.qcow2,format=qcow2,id=hd1 
-QEMU_ARGS +=-device virtio-blk-device,drive=hd1 
+
+
 
 
 # QEMU_ARGS	= --machine virt -m 3G -bios $(BOOTLOADER) -nographic
@@ -99,12 +105,12 @@ monitor:
 	-ex 'b *$(KERNEL_ENTRY_PA)' \
 	-ex 'file $(KERNEL_ELF)' 
 dtb:
-	@dtc -I dts -O dtb -o ../guests/linux.dtb ../guests/linux.dts
-	@dtc -I dts -O dtb -o ../guests/linux2.dtb ../guests/linux2.dts
-	@dtc -I dts -O dtb -o ../guests/linux3.dtb ../guests/linux3.dts
-	@dtc -I dts -O dtb -o ../guests/linux4.dtb ../guests/linux4.dts
-	@dtc -I dts -O dtb -o ../guests/qemu.dtb ../guests/qemu.dts
-	@dtc -I dts -O dtb -o ../guests/os_ch5.dtb ../guests/os_ch5.dts
+	@dtc -I dts -O dtb -o ../guests/devicetree/linux.dtb ../guests/devicetree/linux.dts
+	@dtc -I dts -O dtb -o ../guests/devicetree/linux2.dtb ../guests/devicetree/linux2.dts
+	@dtc -I dts -O dtb -o ../guests/devicetree/linux3.dtb ../guests/devicetree/linux3.dts
+	@dtc -I dts -O dtb -o ../guests/devicetree/linux4.dtb ../guests/devicetree/linux4.dts
+	@dtc -I dts -O dtb -o ../guests/devicetree/qemu.dtb ../guests/devicetree/qemu.dts
+	@dtc -I dts -O dtb -o ../guests/devicetree/os_ch5.dtb ../guests/devicetree/os_ch5.dts
 	
 
 .PHONY: build env kernel clean disa run-inner debug monitor dtb

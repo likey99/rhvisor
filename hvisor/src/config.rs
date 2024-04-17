@@ -9,20 +9,22 @@ pub const DTB_ADDR: usize = 0xbfe00000;
 // pub static GUEST2_DTB: Aligned_dtb1 = Aligned_dtb1(*include_bytes!("../../guests/linux.dtb"));
 #[link_section = ".dtb1"]
 /// the guest dtb file
-pub static GUEST1_DTB: [u8; include_bytes!("../../guests/linux3.dtb").len()] =
-    *include_bytes!("../../guests/linux3.dtb");
+pub static GUEST1_DTB: [u8; include_bytes!("../../guests/devicetree/linux3.dtb").len()] =
+    *include_bytes!("../../guests/devicetree/linux3.dtb");
 #[link_section = ".img1"]
 /// the guest kernel file
-pub static GUEST1: [u8; include_bytes!("../../guests/Image-62U").len()] =
-    *include_bytes!("../../guests/Image-62U");
+pub static GUEST1: [u8; include_bytes!("../../guests/img/Image-62U").len()] =
+    *include_bytes!("../../guests/img/Image-62U");
+// pub static GUEST1: [u8; include_bytes!("../../guests/bao-Image").len()] =
+//     *include_bytes!("../../guests/bao-Image");
 #[link_section = ".dtb2"]
 /// the guest dtb file
-pub static GUEST2_DTB: [u8; include_bytes!("../../guests/linux.dtb").len()] =
-    *include_bytes!("../../guests/linux.dtb");
+pub static GUEST2_DTB: [u8; include_bytes!("../../guests/devicetree/linux.dtb").len()] =
+    *include_bytes!("../../guests/devicetree/linux.dtb");
 #[link_section = ".img2"]
 /// the guest kernel file
-pub static GUEST2: [u8; include_bytes!("../../guests/Image-62U").len()] =
-    *include_bytes!("../../guests/Image-62U");
+pub static GUEST2: [u8; include_bytes!("../../guests/img/Image-62U").len()] =
+    *include_bytes!("../../guests/img/Image-62U");
 
 // #[link_section = ".dtb"]
 // /// the guest dtb file

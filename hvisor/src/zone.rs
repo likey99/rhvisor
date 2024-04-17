@@ -178,7 +178,7 @@ impl Zone {
             if let Some(reg) = node.reg().and_then(|mut reg| reg.next()) {
                 let paddr = reg.starting_address as HostPhysAddr;
                 let size = reg.size.unwrap();
-                info!("map pci addr: {:#x}, size: {:#x}", paddr, size);
+                println!("map pci addr: {:#x}, size: {:#x}", paddr, size);
                 self.gpm.insert(MemoryRegion::new_with_offset_mapper(
                     paddr as GuestPhysAddr,
                     paddr,

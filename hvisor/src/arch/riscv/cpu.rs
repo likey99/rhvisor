@@ -14,6 +14,9 @@ pub struct ArchCpu {
     pub stack_top: usize,
     pub hartid: usize,
     pub first_cpu: usize,
+    pub ssi: usize,
+    pub sti: usize,
+    pub sei: usize,
 }
 impl ArchCpu {
     pub fn new(hartid: usize) -> Self {
@@ -25,6 +28,9 @@ impl ArchCpu {
             stack_top: 0,
             hartid,
             first_cpu: 0,
+            ssi: 0,
+            sti: 0,
+            sei: 0,
         }
     }
     pub fn get_hartid(&self) -> usize {

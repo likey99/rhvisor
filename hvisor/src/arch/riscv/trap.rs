@@ -168,6 +168,8 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
     trace!("CSR_SCAUSE: {:#x}", trap_code);
     match trap_code & 0xfff {
         InterruptType::STI => {
+            current_cpu.sti += 1;
+            trace!("STI {} on CPU{}", current_cpu.sti, current_cpu.hartid);
             trace!("STI on CPU{}", current_cpu.hartid);
             unsafe {
                 hvip::set_vstip();
@@ -177,10 +179,14 @@ pub fn interrupts_arch_handle(current_cpu: &mut ArchCpu) {
             trace!("sie {:#x}", read_csr!(CSR_SIE));
         }
         InterruptType::SSI => {
+            current_cpu.ssi += 1;
+            trace!("SSI {} on CPU{}", current_cpu.ssi, current_cpu.hartid);
             trace!("SSI on CPU {}", current_cpu.hartid);
             handle_ssi(current_cpu);
         }
         InterruptType::SEI => {
+            current_cpu.sei += 1;
+            trace!("SEI {} on CPU{}", current_cpu.sei, current_cpu.hartid);
             debug!("SEI on CPU {}", current_cpu.hartid);
             handle_eirq(current_cpu)
         }
