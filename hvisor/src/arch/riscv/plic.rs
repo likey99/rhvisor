@@ -2,7 +2,6 @@ use core::ops::Add;
 
 use crate::arch::riscv::csr::*;
 use crate::{cpu::ArchCpu, memory::GuestPhysAddr};
-use aarch64_cpu::registers::CCSIDR_EL1::AssociativityWithCCIDX::Value;
 use riscv::register::{hvip, sie};
 use riscv_decode::Instruction;
 use spin::{Once, RwLock};

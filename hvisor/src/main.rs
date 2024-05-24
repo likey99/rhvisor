@@ -116,6 +116,7 @@ fn primary_init_early(dtb: usize) -> HvResult {
         println!("host cpu support sstc");
     }
     memory::init_hv_page_table(host_fdt).unwrap();
+    //mov to arch/  change to irq_chip
     let plic_info = host_fdt.find_node("/soc/plic").unwrap();
     init_plic(
         plic_info.reg().unwrap().next().unwrap().starting_address as usize,

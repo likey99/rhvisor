@@ -2,7 +2,7 @@ use crate::memory::addr::{align_up, PhysAddr, VirtAddr};
 pub use crate::memory::PAGE_SIZE;
 
 /// Size of the hypervisor heap.
-pub const HV_HEAP_SIZE: usize = 1024 * 1024; // 1 MB
+pub const HV_HEAP_SIZE: usize = 10 * 1024; // 1 MB
 pub const HV_MEM_POOL_SIZE: usize = 16 * 1024 * 1024; // 16 MB
 
 pub const PER_CPU_ARRAY_PTR: *mut VirtAddr = __core_end as _;

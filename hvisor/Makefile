@@ -54,13 +54,13 @@ QEMU_ARGS := -machine virt
 # QEMU_ARGS := -machine virt,aclint=on
 QEMU_ARGS +=-nographic 
 QEMU_ARGS +=-cpu rv64 
-QEMU_ARGS +=-m 3G 
+QEMU_ARGS +=-m 4G 
 #rember to change the consts MAX_CPU_NUM and dts
 QEMU_ARGS +=-smp 4
 QEMU_ARGS +=-bios default
 # QEMU_ARGS +=-bios $(BOOTLOADER)
-# QEMU_ARGS +=-kernel ../guests/img/Image-qemu-riscv64-virt 
 # QEMU_ARGS +=-kernel ../guests/img/Image-62U
+# QEMU_ARGS +=-kernel ../guests/img/Image-qemu-riscv64-virt
 QEMU_ARGS +=-kernel $(KERNEL_BIN)
 # QEMU_ARGS +=-kernel ../guests/img/os_ch5_802.bin
 # QEMU_ARGS +=-drive file=../guests/rfs/rootfs-buildroot.qcow2,format=qcow2,id=hd0 
@@ -72,7 +72,7 @@ QEMU_ARGS +=-drive file=../guests/rfs/rootfs1.ext4,format=raw,id=hd0
 QEMU_ARGS +=-device virtio-blk-device,drive=hd0 
 # QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=ttyS0"
 # QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=hvc0"
-# QEMU_ARGS +=-append "root=/dev/vda rw earlycon console=ttyS0 ip=192.168.42.15"
+QEMU_ARGS +=-append "root=/dev/vda rw  earlycon console=ttyS0 ip=192.168.42.15"
 QEMU_ARGS +=-device virtio-net-device,netdev=net0
 QEMU_ARGS +=-netdev user,id=net0,net=192.168.42.0/24,hostfwd=tcp:127.0.0.1:5555-:22
 # QEMU_ARGS +=-device e1000,netdev=net0 -netdev user,id=net0
@@ -93,11 +93,13 @@ QEMU_ARGS +=-netdev user,id=net0,net=192.168.42.0/24,hostfwd=tcp:127.0.0.1:5555-
 # QEMU_ARGS 	+=-device virtio-net-device,netdev=net0
 # QEMU_ARGS	+=-netdev user,id=net0,hostfwd=udp::6200-:2000
 
+# QEMU:= qemu-system-riscv64
+QEMU:=/home/likey/util/qemu/qemu-iommu/build/qemu-system-riscv64
 run-inner: build
-	@qemu-system-riscv64 $(QEMU_ARGS) -S
+	@$(QEMU) $(QEMU_ARGS)
 
 debug: build
-	@qemu-system-riscv64 $(QEMU_ARGS) -s -S
+	@$(QEMU) $(QEMU_ARGS) -s -S
 
 monitor:
 	gdb-multiarch \

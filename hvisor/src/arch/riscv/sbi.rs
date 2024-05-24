@@ -77,9 +77,11 @@ pub fn sbi_vs_handler(current_cpu: &mut ArchCpu) {
             sbi_ret = sbi_time_handler(fid, current_cpu);
         }
         SBI_EID::EXTID_HSM => {
+            warn!("SBI_EID::EXTID_HSM on CPU {}", current_cpu.hartid);
             sbi_ret = sbi_hsm_handler(fid, current_cpu);
         }
         SBI_EID::SEND_IPI => {
+            trace!("SBI_EID::SEND_IPI on CPU {}", current_cpu.hartid);
             trace!(
                 "SBI_EID::SEND_IPI,hartid:{:#x},mask:{:#x}",
                 current_cpu.x[10],
@@ -171,6 +173,7 @@ pub fn sbi_time_handler(fid: usize, current_cpu: &mut ArchCpu) -> SbiRet {
         value: 0,
     };
     let stime = current_cpu.x[10];
+    warn!("SBI_SET_TIMER stime: {:#x}", stime);
     if current_cpu.sstc {
         write_csr!(CSR_VSTIMECMP, stime);
     } else {
